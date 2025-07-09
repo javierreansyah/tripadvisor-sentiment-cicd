@@ -33,10 +33,15 @@ hf-login:
 	huggingface-cli login --token $(HF) --add-to-git-credential
 
 push-hub:
-	huggingface-cli upload mazenbuk/MNIST ./App . --repo-type=space --commit-message="Sync App files"
-	huggingface-cli upload mazenbuk/MNIST ./Model/mnist_cnn.pt Model/mnist_cnn.pt --repo-type=space --commit-message="Sync Model File"
+	huggingface-cli upload mazenbuk/Hotel-Review ./App . --repo-type=space --commit-message="Sync App files"
+	if [ -f ./Model/logreg_tfidf.skops ]; then \
+		huggingface-cli upload mazenbuk/Hotel-Review ./Model/logreg_tfidf.skops Model/logreg_tfidf.skops --repo-type=space --commit-message="Sync Model File"; \
+	fi
+	if [ -f ./Model/tfidf_vectorizer.skops ]; then \
+		huggingface-cli upload mazenbuk/Hotel-Review ./Model/tfidf_vectorizer.skops Model/tfidf_vectorizer.skops --repo-type=space --commit-message="Sync Vectorizer File"; \
+	fi
 	if [ -f ./Results/metrics.txt ]; then \
-		huggingface-cli upload mazenbuk/MNIST ./Results/metrics.txt Results/metrics.txt --repo-type=space --commit-message="Sync Metrics File"; \
+		huggingface-cli upload mazenbuk/Hotel-Review ./Results/metrics.txt Results/metrics.txt --repo-type=space --commit-message="Sync Metrics File"; \
 	fi
 
 deploy: hf-login push-hub
