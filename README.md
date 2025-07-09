@@ -1,6 +1,6 @@
-# MNIST Digit Classification - MLOps Project
+# TripAdvisor Sentiment Analysis - MLOps Project
 
-A containerized MLOps project for handwritten digit classification using CNN and the MNIST dataset. Features automated training, interactive web interface, and Docker-based deployment.
+A containerized MLOps project for hotel review sentiment analysis using Logistic Regression and TF-IDF vectorization. Features automated training, interactive web interface, and Docker-based deployment.
 
 ## 👥 Team Members
 
@@ -11,21 +11,25 @@ A containerized MLOps project for handwritten digit classification using CNN and
 
 ## 🎯 Project Overview
 
-This project implements a **Convolutional Neural Network (CNN)** to classify handwritten digits (0-9) from the MNIST dataset with:
+This project implements a **Logistic Regression model** to classify hotel review sentiments (positive/negative) from TripAdvisor reviews with:
 
-- **Model Training**: PyTorch-based SimpleCNN with automated training pipeline
-- **Web Application**: Interactive Gradio interface for real-time digit recognition  
-- **Containerization**: Docker support with optimized multi-stage builds
+- **Model Training**: Scikit-learn based Logistic Regression with TF-IDF vectorization
+- **Web Application**: Interactive Gradio interface for real-time sentiment prediction  
+- **Containerization**: Docker support with optimized deployment
 - **Cloud Deployment**: Integration with Hugging Face Spaces
 
 ## 🏗️ Project Structure
 
 ```
-nmist/
-├── Dockerfile              # Multi-stage Docker build
+tripadvisor-sentiment-cicd/
+├── Dockerfile              # Docker build configuration
 ├── Makefile                # Automation commands
 ├── requirements.txt        # Training dependencies
 ├── .gitignore              # Git ignore file
+├── .github/workflows/      # CI/CD pipelines
+│   ├── ci.yml              # Continuous Integration
+│   ├── cd.yml              # Continuous Deployment
+│   └── pr.yml              # Pull Request checks
 ├── App/                    # Web application
 │   ├── app.py              # Gradio interface
 │   ├── requirements.txt    # App dependencies
@@ -36,10 +40,11 @@ nmist/
 ├── Notebooks/              # Jupyter notebooks
 │   └── notebook.ipynb      # Experimentation notebook
 ├── Data/                   # Dataset storage
-│   └── MNIST/              # MNIST dataset (auto-downloaded)
+│   └── tripadvisor_hotel_reviews.csv  # Hotel reviews dataset
 ├── Model/                  # Trained model storage
-│   └── mnist_cnn.pt        # Saved model weights
-└── Results/                # Training results (created by make train)
+│   ├── logreg_tfidf.skops  # Logistic regression model
+│   └── tfidf_vectorizer.skops  # TF-IDF vectorizer
+└── Results/                # Training results
     ├── metrics.txt         # Performance metrics
     └── results.png         # Evaluation plots
 ```
@@ -52,20 +57,20 @@ nmist/
 
 ### 1. Clone and Build
 ```bash
-git clone https://github.com/mazenbuk/mnist-cicd-gradio.git
-cd nmist
+git clone https://github.com/javierreansyah/tripadvisor-sentiment-cicd.git
+cd tripadvisor-sentiment-cicd
 
 # Build Docker image (includes training and app)
-docker build -t mnist-app .
+docker build -t sentiment-app .
 ```
 
 ### 2. Run Application
 ```bash
 # Run container
-docker run -p 7860:7860 mnist-app
+docker run -p 7860:7860 sentiment-app
 
 # Or run in background
-docker run -d --name mnist-container -p 7860:7860 mnist-app
+docker run -d --name sentiment-container -p 7860:7860 sentiment-app
 ```
 
 The application will be available at `http://localhost:7860`
@@ -73,13 +78,13 @@ The application will be available at `http://localhost:7860`
 ### 3. Docker Management
 ```bash
 # View logs
-docker logs mnist-container
+docker logs sentiment-container
 
 # Stop container
-docker stop mnist-container
+docker stop sentiment-container
 
 # Remove container
-docker rm mnist-container
+docker rm sentiment-container
 ```
 
 ## 🔧 Alternative: Manual Setup
@@ -106,36 +111,37 @@ python app.py
 
 ## 🐳 Docker Architecture
 
-The project uses a **multi-stage Docker build**:
+The project uses a **single-stage Docker build**:
 
-- **Stage 1 (Builder)**: Trains the model using full training environment
-- **Stage 2 (App)**: Creates lightweight production image with only runtime dependencies
+- **Base Image**: python:3.10-slim for lightweight deployment
+- **Dependencies**: Install from App/requirements.txt
+- **Runtime**: Gradio application with model inference
 
 **Benefits**:
-- Reduced final image size
-- Automated training during build
-- Production-ready deployment
-- Consistent environment across systems
+- Lightweight production image
+- Fast deployment
+- Production-ready environment
+- Consistent runtime across systems
 
 ## 🛠️ Available Commands
 
 | Command | Description |
 |---------|-------------|
 | `make install` | Install dependencies |
-| `make train` | Train the CNN model |
+| `make train` | Train the Logistic Regression model |
 | `make eval` | Evaluate model and generate report |
 | `make format` | Format code with Black |
 | `make deploy` | Deploy to Hugging Face Spaces |
 
 ## 📊 Model Details
 
-- **Architecture**: SimpleCNN with 2 convolutional layers
-- **Framework**: PyTorch with TorchScript compilation
-- **Dataset**: MNIST (28x28 grayscale images)
-- **Training**: 5 epochs with Adam optimizer (lr=0.001)
-- **Data Augmentation**: Random rotation, translation, and scaling
-- **Model Format**: TorchScript (.pt file) for optimized inference
-- **Performance**: Training accuracy printed per epoch during training
+- **Algorithm**: Logistic Regression with TF-IDF vectorization
+- **Framework**: Scikit-learn with skops for model serialization
+- **Dataset**: TripAdvisor hotel reviews (Rating ≥4 = Positive, <4 = Negative)
+- **Features**: TF-IDF with max_features=5000
+- **Training**: 80/20 train-test split with random_state=42
+- **Model Format**: .skops files for optimized inference
+- **Performance**: 90.63% accuracy on test set
 
 ## 🌐 Cloud Deployment
 
@@ -153,12 +159,12 @@ make deploy
 
 ## 📁 Key Files
 
-- **`Scripts/train.py`**: Model training script with SimpleCNN implementation
-- **`Scripts/eval.py`**: Model evaluation script
-- **`App/app.py`**: Gradio web interface for predictions
+- **`Scripts/train.py`**: Model training script with Logistic Regression implementation
+- **`Scripts/eval.py`**: Model evaluation script with confusion matrix
+- **`App/app.py`**: Gradio web interface for sentiment predictions
 - **`App/README.md`**: HuggingFace Space configuration
 - **`Notebooks/notebook.ipynb`**: Jupyter notebook for experimentation
-- **`Dockerfile`**: Multi-stage build for training and deployment
+- **`Dockerfile`**: Container configuration for deployment
 - **`requirements.txt`**: Training dependencies
 - **`App/requirements.txt`**: Production app dependencies
 
@@ -175,7 +181,7 @@ make train
 **Port already in use**:
 ```bash
 # Use different port
-docker run -p 8080:7860 mnist-app
+docker run -p 8080:7860 sentiment-app
 ```
 
 **Docker build fails**:
@@ -190,6 +196,6 @@ This project is for educational purposes as part of Machine Learning Operations 
 
 ## 🔗 Links
 
-- **Hugging Face Space**: [MNIST](https://huggingface.co/spaces/mazenbuk/MNIST)
-- **Dataset**: [MNIST](http://yann.lecun.com/exdb/mnist/)
-- **Framework**: [PyTorch](https://pytorch.org/)
+- **Hugging Face Space**: [Hotel-Review](https://huggingface.co/spaces/mazenbuk/Hotel-Review)
+- **Dataset**: [TripAdvisor Hotel Reviews](https://www.kaggle.com/datasets/andrewmvd/trip-advisor-hotel-reviews)
+- **Framework**: [Scikit-learn](https://scikit-learn.org/)
