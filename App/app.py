@@ -27,9 +27,12 @@ examples_data = [
     ["hated inn terrible, room-service horrible staff un-welcoming, decor recently updated lacks complete look, managment staff horrible.", "Negative"],
     ["best bar lobby meet friend year, pop elevator oliver great place drinks people watching, great location.", "Positive"],
     ["great room stay stayed nights business trip great hotel great room great food near.", "Positive"],
+    ["beware beware leave vehicle, took advantage park ride unfortunately vehicle broken.", "Negative"],
     ["Bathroom was filthy with broken tiles and no hot water for three days straight.", "Negative"],
     ["Amazing breakfast buffet with ocean view, staff went above and beyond our expectations.", "Positive"]
     ["The room was dirty and smelled awful, AC didn't work and staff was rude.","Negative"]
+    ["Perfect romantic getaway, beautiful spa facilities and delicious room service.","Positive"]
+
 ]
 
 with gr.Blocks() as demo:
