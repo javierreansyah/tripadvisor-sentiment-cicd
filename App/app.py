@@ -4,60 +4,30 @@
 # 225150201111003_4 MUHAMMAD HERDI ADAM_4
 
 import gradio as gr
-import torch
-import torchvision.transforms as transforms
-from PIL import Image, ImageOps
+import pandas as pd
+from skops import io as skops_io
+from sklearn.feature_extraction.text import TfidfVectorizer
+import os
 
-model = torch.jit.load('Model/mnist_cnn.pt', map_location='cpu')
-model.eval()
+model = skops_io.load('Model/logreg_tfidf.skops')
+vectorizer = skops_io.load('Model/tfidf_vectorizer.skops')
 
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))
-])
+LABELS = ['Negative', 'Positive']
 
-def preprocess_image(image_array):
-    image = Image.fromarray(image_array.astype('uint8'), 'RGB')
-    image = ImageOps.grayscale(image)
-    image = ImageOps.invert(image)
-    image = image.point(lambda x: 0 if x < 50 else 255, '1')
+def predict_sentiment(text):
+    X_tfidf = vectorizer.transform([text])
+    proba = model.predict_proba(X_tfidf)[0]
+    pred = model.predict(X_tfidf)[0]
+    return {LABELS[0]: float(proba[0]), LABELS[1]: float(proba[1])}
 
-    bbox = image.getbbox()
-    if bbox:
-        cropped = image.crop(bbox)
-        cropped.thumbnail((20, 20), Image.Resampling.LANCZOS)
-        new_image = Image.new('L', (28, 28), 0)
-        top_left = ((28 - cropped.width) // 2, (28 - cropped.height) // 2)
-        new_image.paste(cropped, top_left)
-    else:
-        new_image = Image.new('L', (28, 28), 0)
-
-    return new_image
-
-def predict_digit(input_data):
-    if isinstance(input_data, dict):
-        image_array = input_data.get("composite", input_data.get("image"))
-    else:
-        image_array = input_data
-
-    if image_array is None:
-        return {str(i): 0.0 for i in range(10)}
-
-    processed = preprocess_image(image_array)
-    image_tensor = transform(processed).unsqueeze(0)
-
-    with torch.no_grad():
-        output = model(image_tensor)
-        probabilities = torch.nn.functional.softmax(output, dim=1)
-        predictions = {str(i): float(probabilities[0][i]) for i in range(10)}
-        return predictions
+description = "Masukkan review hotel untuk mendapatkan prediksi sentimen (positif/negatif)"
 
 iface = gr.Interface(
-    fn=predict_digit,
-    inputs=gr.Sketchpad(label="Gambar Digit Tulisan Tangan Anda", type="numpy", image_mode="RGB"),
-    outputs=gr.Label(num_top_classes=3, label="Hasil Prediksi"),
-    title="Klasifikasi Digit Tulisan Tangan MNIST",
-    description="Gambar sebuah digit dari 0-9 pada kanvas di bawah dan klik 'Submit' untuk melihat prediksi model."
+    fn=predict_sentiment,
+    inputs=gr.Textbox(lines=4, label="Review Hotel"),
+    outputs=gr.Label(num_top_classes=2, label="Prediksi Sentimen"),
+    title="Klasifikasi Sentimen Review Hotel TripAdvisor",
+    description=description
 )
 
 iface.launch(server_name="0.0.0.0", server_port=7860)

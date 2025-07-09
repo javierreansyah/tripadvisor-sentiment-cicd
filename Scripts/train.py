@@ -4,28 +4,11 @@
 # 225150201111003_4 MUHAMMAD HERDI ADAM_4
 
 import os
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torchvision import datasets, transforms
-
-class SimpleCNN(nn.Module):
-    def __init__(self):
-        super(SimpleCNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.fc1 = nn.Linear(64 * 7 * 7, 128)
-        self.fc2 = nn.Linear(128, 10)
-        self.relu = nn.ReLU()
-
-    def forward(self, x):
-        x = self.pool(self.relu(self.conv1(x)))
-        x = self.pool(self.relu(self.conv2(x)))
-        x = x.view(-1, 64 * 7 * 7)
-        x = self.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from skops import io as skops_io
 
 if __name__ == "__main__":
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -35,42 +18,28 @@ if __name__ == "__main__":
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(MODEL_DIR, exist_ok=True)
 
-    transform = transforms.Compose([
-        transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))
-    ])
+    # Load data
+    df = pd.read_csv(os.path.join(DATA_DIR, 'tripadvisor_hotel_reviews.csv'))
+    df['Rating'] = df['Rating'].apply(lambda x: 1 if x >= 4 else 0)
+    X = df['Review']
+    y = df['Rating']
 
-    train_dataset = datasets.MNIST(root=DATA_DIR, train=True, download=True, transform=transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    model = SimpleCNN()
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    # TF-IDF Vectorization
+    vectorizer = TfidfVectorizer(max_features=5000)
+    X_train_tfidf = vectorizer.fit_transform(X_train)
+    X_test_tfidf = vectorizer.transform(X_test)
 
-    num_epochs = 5
-    for epoch in range(num_epochs):
-        running_loss = 0.0
-        correct = 0
-        total = 0
-        for images, labels in train_loader:
-            optimizer.zero_grad()
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+    # Train logistic regression model
+    model = LogisticRegression(max_iter=1000, solver='lbfgs')
+    model.fit(X_train_tfidf, y_train)
 
-            running_loss += loss.item()
-            _, predicted = torch.max(outputs, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
+    # Save model using SKOPS
+    model_path = os.path.join(MODEL_DIR, 'logreg_tfidf.skops')
+    skops_io.dump(model, model_path)
 
-        epoch_loss = running_loss / len(train_loader)
-        accuracy = 100 * correct / total
-        print(f"Epoch [{epoch+1}/{num_epochs}] - Loss: {epoch_loss:.4f} - Accuracy: {accuracy:.2f}%")
-
-    example_input = torch.randn(1, 1, 28, 28)
-    scripted_model = torch.jit.trace(model, example_input)
-    model_path = os.path.join(MODEL_DIR, 'mnist_cnn.pt')
-    scripted_model.save(model_path)
-    print(f"TorchScript model saved to {model_path}")
+    # Save vectorizer
+    vectorizer_path = os.path.join(MODEL_DIR, 'tfidf_vectorizer.skops')
+    skops_io.dump(vectorizer, vectorizer_path)

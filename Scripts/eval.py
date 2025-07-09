@@ -4,12 +4,12 @@
 # 225150201111003_4 MUHAMMAD HERDI ADAM_4
 
 import os
-import torch
-from torchvision import datasets, transforms
+import pandas as pd
+from skops import io as skops_io
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix, accuracy_score
-import numpy as np
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 MODEL_DIR = os.path.join(ROOT_DIR, 'Model')
@@ -18,45 +18,42 @@ DATA_DIR = os.path.join(ROOT_DIR, 'Data')
 
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-model_path = os.path.join(MODEL_DIR, 'mnist_cnn.pt')
-model = torch.jit.load(model_path, map_location='cpu')
-model.eval()
+# Load model and vectorizer
+model_path = os.path.join(MODEL_DIR, 'logreg_tfidf.skops')
+vectorizer_path = os.path.join(MODEL_DIR, 'tfidf_vectorizer.skops')
+model = skops_io.load(model_path)
+vectorizer = skops_io.load(vectorizer_path)
 
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))
-])
+# Load data
+csv_path = os.path.join(DATA_DIR, 'tripadvisor_hotel_reviews.csv')
+df = pd.read_csv(csv_path)
+df['Rating'] = df['Rating'].apply(lambda x: 1 if x >= 4 else 0)
+X = df['Review']
+y = df['Rating']
 
-test_dataset = datasets.MNIST(root=DATA_DIR, train=False, download=True, transform=transform)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64, shuffle=False)
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-all_preds = []
-all_labels = []
+# Transform test data
+X_test_tfidf = vectorizer.transform(X_test)
 
-with torch.no_grad():
-    for images, labels in test_loader:
-        outputs = model(images)
-        _, preds = torch.max(outputs, 1)
-        all_preds.extend(preds.cpu().numpy())
-        all_labels.extend(labels.cpu().numpy())
-
-accuracy = accuracy_score(all_labels, all_preds)
+# Predict and evaluate
+y_pred = model.predict(X_test_tfidf)
+accuracy = accuracy_score(y_test, y_pred)
 print(f"Test Accuracy: {accuracy * 100:.2f}%")
 
 metrics_path = os.path.join(RESULTS_DIR, 'metrics.txt')
 with open(metrics_path, 'w') as f:
     f.write(f"Accuracy: {accuracy * 100:.2f}%\n")
-print(f"Metrics saved to {metrics_path}")
 
-cm = confusion_matrix(all_labels, all_preds)
+print(classification_report(y_test, y_pred, target_names=['Negative', 'Positive']))
 
-plt.figure(figsize=(8, 6))
-sns.heatmap(cm, annot=True, fmt="d", cmap='Blues', cbar=False,
-            xticklabels=[str(i) for i in range(10)],
-            yticklabels=[str(i) for i in range(10)])
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(6, 5))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Negative', 'Positive'], yticklabels=['Negative', 'Positive'])
 plt.xlabel('Predicted')
 plt.ylabel('True')
-plt.title('Confusion Matrix on MNIST Test Set')
+plt.title('Confusion Matrix')
 plt.tight_layout()
 
 plot_path = os.path.join(RESULTS_DIR, 'results.png')
