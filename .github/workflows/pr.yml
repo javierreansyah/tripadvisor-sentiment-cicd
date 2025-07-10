@@ -8,6 +8,14 @@ name: Pull Request Checks
 on:
   pull_request:
     branches: ["main"]
+    paths:
+      - "Scripts/**"
+      - "App/**"
+      - ".github/workflows/**"
+      - "Data/**"
+      - "Dockerfile"
+      - "Makefile"
+      - "requirements.txt"
 
 jobs:
   pr-checks:
@@ -18,6 +26,6 @@ jobs:
 
       - name: Install Packages
         run: make install
-        
+
       - name: Format Code
         run: make format

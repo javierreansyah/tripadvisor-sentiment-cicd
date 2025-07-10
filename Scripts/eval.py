@@ -4,10 +4,10 @@
 # 225150201111003_4 MUHAMMAD HERDI ADAM_4
 
 import os
+import nltk
 import pandas as pd
 from skops import io as skops_io
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -18,45 +18,42 @@ DATA_DIR = os.path.join(ROOT_DIR, 'Data')
 
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-# Load model and vectorizer
 model_path = os.path.join(MODEL_DIR, 'logreg_tfidf.skops')
 vectorizer_path = os.path.join(MODEL_DIR, 'tfidf_vectorizer.skops')
 model = skops_io.load(model_path)
-vectorizer = skops_io.load(vectorizer_path)
+vectorizer = skops_io.load(vectorizer_path, trusted=[nltk.tokenize.word_tokenize])
 
-# Load data
-csv_path = os.path.join(DATA_DIR, 'tripadvisor_hotel_reviews.csv')
-df = pd.read_csv(csv_path)
-df['Rating'] = df['Rating'].apply(lambda x: 1 if x >= 4 else 0)
-X = df['Review']
-y = df['Rating']
+test_df = pd.read_csv(os.path.join(DATA_DIR, 'test.csv'))
+X_test = test_df['Cleaned_Review']
+y_test = test_df['Sentiment']
 
-# Split data
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Transform test data
 X_test_tfidf = vectorizer.transform(X_test)
 
-# Predict and evaluate
 y_pred = model.predict(X_test_tfidf)
+
 accuracy = accuracy_score(y_test, y_pred)
-print(f"Test Accuracy: {accuracy * 100:.2f}%")
+report = classification_report(y_test, y_pred, target_names=['Negative', 'Positive'])
+
+print(f"✅ Test Accuracy: {accuracy * 100:.2f}%")
+print(report)
 
 metrics_path = os.path.join(RESULTS_DIR, 'metrics.txt')
 with open(metrics_path, 'w') as f:
     f.write(f"Accuracy: {accuracy * 100:.2f}%\n")
-
-print(classification_report(y_test, y_pred, target_names=['Negative', 'Positive']))
+    f.write(report)
+print(f"Metrics saved to {metrics_path}")
 
 cm = confusion_matrix(y_test, y_pred)
 plt.figure(figsize=(6, 5))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Negative', 'Positive'], yticklabels=['Negative', 'Positive'])
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=['Negative', 'Positive'],
+            yticklabels=['Negative', 'Positive'])
 plt.xlabel('Predicted')
 plt.ylabel('True')
 plt.title('Confusion Matrix')
 plt.tight_layout()
 
-plot_path = os.path.join(RESULTS_DIR, 'results.png')
+plot_path = os.path.join(RESULTS_DIR, 'confusion_matrix.png')
 plt.savefig(plot_path)
 plt.close()
-print(f"Confusion matrix plot saved to {plot_path}")
+print(f"Confusion matrix saved to {plot_path}")
