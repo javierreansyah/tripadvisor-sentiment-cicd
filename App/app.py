@@ -20,14 +20,39 @@ def predict_sentiment(text):
     pred = model.predict(X_tfidf)[0]
     return {LABELS[0]: float(proba[0]), LABELS[1]: float(proba[1])}
 
-description = "Masukkan review hotel untuk mendapatkan prediksi sentimen (positif/negatif)"
+description = "Enter a hotel review to get sentiment prediction (positive/negative)"
 
-iface = gr.Interface(
-    fn=predict_sentiment,
-    inputs=gr.Textbox(lines=4, label="Review Hotel"),
-    outputs=gr.Label(num_top_classes=2, label="Prediksi Sentimen"),
-    title="Klasifikasi Sentimen Review Hotel TripAdvisor",
-    description=description
-)
+# Contoh data untuk tabel
+examples_data = [
+    ["hated inn terrible, room-service horrible staff un-welcoming, decor recently updated lacks complete look, managment staff horrible.", "Negative"],
+    ["best bar lobby meet friend year, pop elevator oliver great place drinks people watching, great location.", "Positive"],
+    ["great room stay stayed nights business trip great hotel great room great food near.", "Positive"],
+    ["beware beware leave vehicle, took advantage park ride unfortunately vehicle broken.", "Negative"],
+    ["Bathroom was filthy with broken tiles and no hot water for three days straight.", "Negative"],
+    ["Amazing breakfast buffet with ocean view, staff went above and beyond our expectations.", "Positive"],
+    ["The room was dirty and smelled awful, AC didn't work and staff was rude.","Negative"],
+    ["Perfect romantic getaway, beautiful spa facilities and delicious room service.","Positive"],
 
-iface.launch(server_name="0.0.0.0", server_port=7860)
+]
+
+with gr.Blocks() as demo:
+    # Interface utama
+    iface = gr.Interface(
+        fn=predict_sentiment,
+        inputs=gr.Textbox(lines=4, label="Hotel Review"),
+        outputs=gr.Label(num_top_classes=2, label="Sentimen Prediction"),
+        title="TripAdvisor Hotel Review Sentiment Classification",
+        description=description
+    )
+    
+    # Tabel contoh
+    gr.Markdown("## Input and Output Examples")
+    gr.DataFrame(
+        value=examples_data,
+        headers=["Review Example", "Sentiment Prediction"],
+        datatype=["str", "str"],
+        interactive=False,
+        wrap=True
+    )
+
+demo.launch(server_name="0.0.0.0", server_port=7860, share=True)
