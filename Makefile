@@ -7,7 +7,7 @@ format:
 
 train:
 	mkdir -p Model Results
-	python -m nltk.downloader --force stopwords wordnet punkt
+	python Scripts/download_nltk_data.py
 	python Scripts/preprocess.py
 	python Scripts/train.py
 
