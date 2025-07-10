@@ -7,15 +7,16 @@ format:
 
 train:
 	mkdir -p Model Results
+	python Scripts/preprocess.py
 	python Scripts/train.py
 
 eval:
 	python Scripts/eval.py
 	echo "## Model Metrics" > Results/report.md
 	if [ -f ./Results/metrics.txt ]; then cat ./Results/metrics.txt >> Results/report.md; fi
-	if [ -f ./Results/results.png ]; then \
+	if [ -f ./Results/confusion_matrix.png ]; then \
 		echo '\n## Evaluation Plot' >> Results/report.md; \
-		echo '![Results](./Results/results.png)' >> Results/report.md; \
+		echo '![Confusion Matrix](confusion_matrix.png)' >> Results/report.md; \
 	fi
 	cml comment create Results/report.md
 

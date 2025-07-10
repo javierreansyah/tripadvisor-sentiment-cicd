@@ -8,6 +8,14 @@ name: Continuous Integration
 on:
   push:
     branches: ["main"]
+    paths:
+      - "Scripts/**"
+      - "App/**"
+      - ".github/workflows/**"
+      - "Data/**"
+      - "Dockerfile"
+      - "Makefile"
+      - "requirements.txt"
   workflow_dispatch:
 
 permissions: write-all
