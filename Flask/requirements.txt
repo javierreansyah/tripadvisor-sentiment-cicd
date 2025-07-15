@@ -1,0 +1,13 @@
+# Flask/requirements.txt
+
+# Core libraries for inference
+pandas==1.5.0
+scikit-learn==1.5.2  # Match the version the model was saved with
+skops==0.10.0
+nltk==3.8.1
+numpy==1.26.4
+
+# Libraries for Flask & Prometheus
+flask
+prometheus-flask-exporter
+prometheus-client

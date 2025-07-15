@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "flask-metrics-service"
+    # Docker Compose lets services talk to each other using their service name.
+    static_configs:
+      - targets: ["flask-app:5000"]

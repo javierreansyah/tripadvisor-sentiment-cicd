@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Gradio Web UI Service
+  gradio-app:
+    build:
+      context: .
+      dockerfile: App/Dockerfile # This points to your existing root Dockerfile
+    container_name: gradio_ui
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./Model:/app/Model # Mount the model directory into the container
+    env_file:
+      - .env # Pass the API key to the Gradio app
+    restart: unless-stopped
+
+  # Flask Metrics Service
+  flask-app:
+    build:
+      context: .
+      dockerfile: Flask/Dockerfile # Point to the new Flask Dockerfile
+    container_name: flask_metrics_api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./Model:/app/Model   # Mount models for inference
+      - ./Data:/app/Data     # Mount data for calculating metrics
+    restart: unless-stopped
+
+  # Prometheus Service
+  prometheus:
+    image: prom/prometheus:main
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    depends_on:
+      - flask-app # Wait for the flask app to be ready
+    restart: unless-stopped
+
+  # Grafana Service
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana # Persistent storage for dashboards
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  grafana-storage: {} # Defines the named volume for Grafana

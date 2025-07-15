@@ -24,7 +24,7 @@ model = skops_io.load(model_path)
 vectorizer = skops_io.load(vectorizer_path, trusted=[nltk.tokenize.word_tokenize])
 
 test_df = pd.read_csv(os.path.join(DATA_DIR, 'test.csv'))
-X_test = test_df['Cleaned_Review']
+X_test = test_df['Review']
 y_test = test_df['Sentiment']
 
 X_test_tfidf = vectorizer.transform(X_test)

@@ -17,9 +17,8 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 
 train_df = pd.read_csv(os.path.join(DATA_DIR, 'train.csv'))
 
-X_train = train_df['Cleaned_Review']
+X_train = train_df['Review']
 y_train = train_df['Sentiment']
-
 
 vectorizer = TfidfVectorizer(ngram_range=(1, 3), max_features=10000, tokenizer=word_tokenize)
 X_train_tfidf = vectorizer.fit_transform(X_train)
