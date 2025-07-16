@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # Gradio Web UI Service
@@ -15,18 +15,22 @@ services:
       - .env # Pass the API key to the Gradio app
     restart: unless-stopped
 
-  # Flask Metrics Service
+  # --- Your Existing Flask App (will be updated) ---
   flask-app:
     build:
       context: .
-      dockerfile: Flask/Dockerfile # Point to the new Flask Dockerfile
+      dockerfile: Flask/Dockerfile
     container_name: flask_metrics_api
     ports:
       - "5000:5000"
+    environment:
+      # It no longer needs direct access to MLflow, only the model-server
+      - MODEL_SERVER_URL=http://model-server:1234
     volumes:
-      - ./Model:/app/Model   # Mount models for inference
-      - ./Data:/app/Data     # Mount data for calculating metrics
+      - ./Data:/app/Data
     restart: unless-stopped
+    depends_on:
+      - model-server # Make sure it waits for the model server to be ready
 
   # Prometheus Service
   prometheus:
@@ -36,10 +40,12 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus # <-- ADD THIS LINE
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus" # <-- ADD THIS LINE
     depends_on:
-      - flask-app # Wait for the flask app to be ready
+      - flask-app
     restart: unless-stopped
 
   # Grafana Service
@@ -54,5 +60,101 @@ services:
       - prometheus
     restart: unless-stopped
 
+  db:
+    image: postgres:13
+    container_name: mlflow_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=mlflow_user
+      - POSTGRES_PASSWORD=mlflow_password
+      - POSTGRES_DB=mlflow_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" # Expose for local debugging if needed
+
+  # 2. MinIO for MLflow Artifact Store
+  minio:
+    image: minio/minio:latest
+    container_name: mlflow_minio
+    restart: unless-stopped
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # API Port
+      - "9001:9001" # Web UI Console Port
+    volumes:
+      - minio-data:/data
+
+  # 3. MLflow Tracking Server (Updated)
+  mlflow:
+    # Instead of 'image:', we now use 'build:' to create our custom image
+    build:
+      context: .
+      dockerfile: MLFlow_Server/Dockerfile
+    container_name: mlflow_server
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    environment:
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://mlflow_user:mlflow_password@db:5432/mlflow_db
+      --default-artifact-root s3://mlflow/
+      --host 0.0.0.0
+    depends_on:
+      - db
+      - minio
+
+  # 4. Training Runner Service (Updated)
+  training-runner:
+    build:
+      context: .
+      dockerfile: MLFlow/Dockerfile
+    container_name: training_runner
+    # This environment block gives the MLflow client inside this container
+    # the credentials it needs to connect to the MinIO service.
+    environment:
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    volumes:
+      - ./MLFlow:/app/MLFlow
+      - ./Data:/app/Data
+      - ./Results:/app/Results
+    depends_on:
+      - mlflow
+
+  # --- NEW: MLflow Model Serving Service (FIXED) ---
+  model-server:
+    build:
+      context: .
+      dockerfile: MLFlow/Dockerfile
+    container_name: model_server
+    restart: unless-stopped
+    ports:
+      - "1234:1234"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    command: >
+      mlflow models serve
+      -m "models:/sentiment-classifier@prod"
+      --host 0.0.0.0
+      --port 1234
+      --env-manager local
+    depends_on:
+      - mlflow
+
 volumes:
-  grafana-storage: {} # Defines the named volume for Grafana
+  grafana-storage: {}
+  postgres-data: {}
+  minio-data: {}
+  prometheus-data: {} # <-- ADD THIS LINE

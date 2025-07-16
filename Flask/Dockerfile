@@ -2,18 +2,14 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install dependencies
+# Copy requirements and install dependencies
 COPY Flask/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download the required NLTK data package
-RUN python -m nltk.downloader punkt # <-- ADD THIS LINE
+# The NLTK downloader line is removed as this service no longer uses NLTK directly.
 
 # Copy app code
 COPY Flask/app.py .
-
-# Copy the model directory into the container's /app/Model directory
-COPY Model/ /app/Model
 
 # Make port 5000 available
 EXPOSE 5000
