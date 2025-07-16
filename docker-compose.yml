@@ -22,7 +22,7 @@ services:
       dockerfile: Flask/Dockerfile
     container_name: flask_metrics_api
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       # It no longer needs direct access to MLflow, only the model-server
       - MODEL_SERVER_URL=http://model-server:1234
