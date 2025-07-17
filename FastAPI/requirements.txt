@@ -4,8 +4,9 @@ scikit-learn==1.5.2
 numpy==1.26.4
 scipy
 mlflow-skinny  # Lightweight client for model loading
-nltk==3.8.1
 boto3          # AWS SDK for Python, needed by MLflow for S3 access
+nltk==3.8.1    # Needed for the model's preprocessing step
+google-generativeai # Added: For generating synthetic data
 
 # Libraries for FastAPI & Prometheus
 fastapi

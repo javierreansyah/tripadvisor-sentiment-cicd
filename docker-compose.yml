@@ -18,13 +18,14 @@ services:
   fastapi-app:
     build:
       context: ./FastAPI
-    container_name: fastapi_unified_api
+    container_name: fastapi_metrics_api
     ports:
       - "8000:8000"
+    # Add env_file to load the .env file
+    env_file:
+      - .env
     environment:
-      # This service now needs the MLflow tracking URI
       - MLFLOW_TRACKING_URI=http://mlflow:5000
-      # --- ADDED: Credentials for MinIO S3 access ---
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
@@ -32,7 +33,7 @@ services:
       - ./Data:/app/Data
     restart: unless-stopped
     depends_on:
-      - mlflow # Now depends directly on mlflow
+      - mlflow
 
   prometheus:
     image: prom/prometheus:main

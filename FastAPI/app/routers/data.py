@@ -1,71 +1,43 @@
 import asyncio
-import csv
-import os
-import pytz
-from datetime import datetime
-from fastapi import APIRouter, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Form, Request, HTTPException
+from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
 
-from app.config import DATA_DIR
-from app.services import calculate_drift_metrics
-from app.metrics import KS_gauge, Wasserstein_gauge
+# Import the new service functions
+from app.services import add_manual_data, generate_and_save_gemini_data
 
 router = APIRouter()
 
-NEW_FORM_HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add New Data</title>
-    <style>
-        body { font-family: sans-serif; background-color: #f4f4f9; color: #333; margin: 2em; }
-        h2 { color: #444; }
-        form { background: white; padding: 2em; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; }
-        input[type="text"], input[type="number"] { width: 100%; padding: 8px; margin-bottom: 1em; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        input[type="submit"] { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
-        input[type="submit"]:hover { background-color: #0056b3; }
-    </style>
-</head>
-<body>
-  <h2>Add New Labeled Data</h2>
-  <form method="post" action="/new">
-    Review: <br>
-    <input type="text" name="review" required><br>
-    Sentiment (0=Negative, 1=Positive): <br>
-    <input type="number" name="sentiment" min="0" max="1" required><br><br>
-    <input type="submit" value="Submit">
-  </form>
-</body>
-</html>
-"""
+# Point to the 'templates' directory
+templates = Jinja2Templates(directory="templates")
 
 @router.get("/new", response_class=HTMLResponse)
-async def show_new_data_form():
-    """Displays the HTML form to add new data."""
-    return HTMLResponse(content=NEW_FORM_HTML)
+async def show_new_data_form(request: Request):
+    """
+    Renders the data form from an external HTML file.
+    """
+    return templates.TemplateResponse("data_form.html", {"request": request})
 
 @router.post("/new")
-async def add_new_data(review: str = Form(...), sentiment: int = Form(...)):
-    """Handles the submission of the new data form."""
-    def _write_to_csv_sync():
-        new_data_path = os.path.join(DATA_DIR, 'new_data.csv')
-        wib_tz = pytz.timezone('Asia/Jakarta')
-        timestamp = datetime.now(wib_tz).strftime("%Y-%m-%d %H:%M:%S")
-        
-        header_exists = os.path.exists(new_data_path) and os.path.getsize(new_data_path) > 0
-        with open(new_data_path, 'a', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
-            if not header_exists:
-                writer.writerow(['Timestamp', 'Review', 'Sentiment'])
-            writer.writerow([timestamp, review, sentiment])
+async def handle_add_new_data(review: str = Form(...), sentiment: int = Form(...)):
+    """
+    Handles the manual data submission by calling the data service.
+    """
+    # Run the synchronous file-writing operation in a separate thread
+    await asyncio.to_thread(add_manual_data, review, sentiment)
+    return RedirectResponse(url="/new", status_code=303)
 
-    await asyncio.to_thread(_write_to_csv_sync)
-
-    ks_stat, wass_dist = await calculate_drift_metrics()
-    KS_gauge.set(ks_stat)
-    Wasserstein_gauge.set(wass_dist)
-    print(f"New data added. Updated KS: {ks_stat:.4f}, Wasserstein: {wass_dist:.4f}")
+@router.post("/generate")
+async def handle_generate_data(style: str = Form(...), quantity: int = Form(...)):
+    """
+    Handles the Gemini data generation request by calling the generation service.
+    """
+    try:
+        # The service function already handles API calls and file writing.
+        # We run it in a thread because the Gemini API call is synchronous.
+        await asyncio.to_thread(generate_and_save_gemini_data, style, quantity)
+    except Exception as e:
+        # Catch exceptions from the service and show an error
+        raise HTTPException(status_code=500, detail=str(e))
 
     return RedirectResponse(url="/new", status_code=303)
