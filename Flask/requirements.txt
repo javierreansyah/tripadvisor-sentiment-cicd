@@ -10,3 +10,6 @@ prometheus-client
 
 # Library for making HTTP requests
 requests
+
+# Timezone handling
+pytz

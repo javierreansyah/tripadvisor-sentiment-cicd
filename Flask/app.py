@@ -25,20 +25,66 @@ print(f"Flask app configured to make predictions to: {PREDICT_ENDPOINT}")
 
 # --- METRIC CALCULATION LOGIC ---
 def calculate_model_accuracy():
+    """
+    Loads data, sends each review separately to the model server for prediction,
+    and returns the sample's accuracy.
+    """
     try:
+        print("BACKGROUND: Starting accuracy calculation with a random sample...")
         DATA_DIR = 'Data'
-        data_path = os.path.join(DATA_DIR, 'test.csv')
-        df = pd.read_csv(data_path)
-        # Asumsi prediksi sudah tersedia di kolom 'Prediction', jika belum, gunakan model untuk prediksi
-        if 'Prediction' in df.columns:
-            y_true = df['Sentiment'].values
-            y_pred = df['Prediction'].values
-            return accuracy_score(y_true, y_pred)
+
+        raw_data_path = os.path.join(DATA_DIR, 'data.csv')
+        df = pd.read_csv(raw_data_path)
+        _, X_test, _, y_test = train_test_split(
+            df['Review'], df['Sentiment'], test_size=0.2, random_state=42
+        )
+
+        sample_size = 20
+        X_sample = X_test.sample(n=sample_size)
+        y_sample = y_test.loc[X_sample.index]
+        
+        print(f"BACKGROUND: Created a random sample of {len(X_sample)} reviews.")
+
+        predictions = []
+        for idx, review in enumerate(X_sample):
+            json_data = {
+                "dataframe_split": pd.DataFrame([review], columns=['Review']).to_dict(orient="split")
+            }
+            
+            print(f"BACKGROUND: Sending request {idx+1}/{sample_size} to model server...")
+            response = requests.post(PREDICT_ENDPOINT, json=json_data, timeout=10)
+
+            if response.status_code == 200:
+                response_json = response.json()
+                pred = response_json.get('predictions')
+                if pred is not None and len(pred) > 0:
+                    predictions.append(pred[0])
+                    print(f"BACKGROUND: Received prediction: {pred[0]}")
+                else:
+                    print(f"BACKGROUND: Warning - 'predictions' missing or empty in response. Content: {response.text}")
+                    predictions.append(None)  # mark as None if failed
+            else:
+                print(f"BACKGROUND: Error - Non-200 status code: {response.status_code}. Content: {response.text}")
+                predictions.append(None)
+
+        # Filter out failed predictions before accuracy calculation
+        valid_indices = [i for i, p in enumerate(predictions) if p is not None]
+        y_valid = y_sample.iloc[valid_indices]
+        predictions_valid = [predictions[i] for i in valid_indices]
+
+        if len(predictions_valid) > 0:
+            accuracy = accuracy_score(y_valid, predictions_valid)
+            print(f"BACKGROUND: Sample accuracy calculated: {accuracy}")
+            return accuracy
         else:
-            # Jika tidak ada kolom Prediction, return 0.0
+            print("BACKGROUND: All predictions failed; accuracy cannot be computed.")
             return 0.0
+
+    except requests.exceptions.RequestException as e:
+        print(f"BACKGROUND: Network error connecting to model server: {e}")
+        return 0.0
     except Exception as e:
-        print(f"Error calculating accuracy: {e}")
+        print(f"BACKGROUND: An unexpected error occurred: {e}")
         return 0.0
 
 def calculate_drift_metrics():
@@ -48,8 +94,8 @@ def calculate_drift_metrics():
         new_data_path = os.path.join(DATA_DIR, 'new_data.csv')
         df_ref = pd.read_csv(ref_data_path)
         df_new = pd.read_csv(new_data_path)
-        df_new['timestamp'] = pd.to_datetime(df_new['timestamp'])
-        df_new_latest = df_new.sort_values('timestamp', ascending=False).head(100)
+        df_new['Timestamp'] = pd.to_datetime(df_new['Timestamp'])
+        df_new_latest = df_new.sort_values('Timestamp', ascending=False).head(100)
         ref_values = df_ref['Sentiment'].values
         new_values = df_new_latest['Sentiment'].values
         ks_stat, ks_p = ks_2samp(ref_values, new_values)
@@ -105,7 +151,13 @@ def new_data():
         review = request.form['review']
         sentiment = int(request.form['sentiment'])
         from datetime import datetime
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        import pytz
+        # Set timezone ke Indonesia (WIB = UTC+7)
+        wib_tz = pytz.timezone('Asia/Jakarta')
+        timestamp = datetime.now(wib_tz).strftime("%Y-%m-%d %H:%M:%S")
+        
+        print(f"Adding new data with timestamp: {timestamp} (WIB)")
+        
         # Optionally, call Gemini script here to generate synthetic review
         # For now, just append the submitted data
         header_exists = os.path.exists(new_data_path)
