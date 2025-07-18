@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retraining Dashboard</title>
+    <title>TripAdvisor Sentiment Analysis - Dashboard</title>
     <style>
         body { font-family: sans-serif; background-color: #f4f4f9; color: #333; margin: 2em; }
         .container { max-width: 1200px; margin: auto; }
         h1, h2 { color: #444; }
-        .status-box, .model-card { background: white; padding: 1.5em; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2em; }
+        .status-box, .model-card, .form-container { background: white; padding: 1.5em; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2em; }
         .status-box p { font-size: 1.2em; font-weight: bold; }
         .status-idle { color: #28a745; }
         .status-training { color: #ffc107; }
@@ -22,11 +22,45 @@
         button:disabled { background-color: #ccc; cursor: not-allowed; }
         .deploy-btn { background-color: #28a745; }
         .deploy-btn:hover { background-color: #218838; }
+        .generate-btn { background-color: #28a745; }
+        .generate-btn:hover { background-color: #218838; }
+        
+        /* Data form styles */
+        .data-section { margin-top: 3em; }
+        .data-forms { display: flex; gap: 2em; flex-wrap: wrap; }
+        .form-container { flex: 1; min-width: 400px; }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 1em;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            width: auto;
+        }
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        .form-container input[type="submit"].generate-btn {
+            background-color: #28a745;
+        }
+        .form-container input[type="submit"].generate-btn:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Retraining & Deployment Dashboard</h1>
+        <h1>TripAdvisor Sentiment Analysis - Dashboard</h1>
 
         <div class="status-box">
             <h2>Training Status</h2>
@@ -38,13 +72,6 @@
                     Train New Model
                 </button>
             </form>
-        </div>
-
-        <div class="status-box">
-            <h2>Data Versioning Status</h2>
-            <div id="dvc-status">
-                <p>Loading DVC status...</p>
-            </div>
         </div>
 
         <div class="model-grid">
@@ -78,52 +105,26 @@
                 {% endif %}
             </div>
         </div>
-    </div>
 
-    <script>
-        // Function to load DVC status
-        async function loadDVCStatus() {
-            try {
-                const response = await fetch('/api/dvc-status');
-                const result = await response.json();
-                
-                const dvcStatusDiv = document.getElementById('dvc-status');
-                
-                if (result.success) {
-                    const data = result.data;
-                    const formatSize = (bytes) => {
-                        if (bytes === 0) return '0 B';
-                        const k = 1024;
-                        const sizes = ['B', 'KB', 'MB', 'GB'];
-                        const i = Math.floor(Math.log(bytes) / Math.log(k));
-                        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-                    };
-                    
-                    dvcStatusDiv.innerHTML = `
-                        <table class="metrics-table">
-                            <tr><td>Main Data Tracked:</td><td>${data.data_csv_tracked ? '✅ Yes' : '❌ No'}</td></tr>
-                            <tr><td>Main Data Size:</td><td>${formatSize(data.data_csv_size)}</td></tr>
-                            <tr><td>New Data Size:</td><td>${formatSize(data.new_data_csv_size)}</td></tr>
-                            <tr><td>Data Files Status:</td><td>
-                                data.csv: ${data.data_csv_exists ? '✅' : '❌'} | 
-                                new_data.csv: ${data.new_data_csv_exists ? '✅' : '❌'}
-                            </td></tr>
-                        </table>
-                    `;
-                } else {
-                    dvcStatusDiv.innerHTML = `<p style="color: red;">Error loading DVC status: ${result.error}</p>`;
-                }
-            } catch (error) {
-                document.getElementById('dvc-status').innerHTML = 
-                    `<p style="color: red;">Error: ${error.message}</p>`;
-            }
-        }
-        
-        // Load DVC status when page loads
-        loadDVCStatus();
-        
-        // Refresh DVC status every 30 seconds
-        setInterval(loadDVCStatus, 30000);
-    </script>
+        <div class="data-section">
+            <h1>Add & Generate Training Data</h1>
+            <div class="data-forms">
+                <div class="form-container">
+                    <h2>Generate Synthetic Data with Gemini</h2>
+                    <form method="post" action="/generate">
+                        Review Style (e.g., sarcastic, gen z, formal): <br />
+                        <input type="text" name="style" value="realistic" required /><br />
+                        Quantity: <br />
+                        <select name="quantity">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="30">30</option>
+                        </select><br /><br />
+                        <input type="submit" value="Generate Data" class="generate-btn" />
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

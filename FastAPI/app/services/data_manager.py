@@ -17,12 +17,6 @@ def write_data_to_csv(data_to_write: list):
             writer.writerow(['Timestamp', 'Review', 'Sentiment'])
         writer.writerows(data_to_write)
 
-def add_manual_data(review: str, sentiment: int):
-    wib_tz = pytz.timezone('Asia/Jakarta')
-    timestamp = datetime.now(wib_tz).strftime("%Y-%m-%d %H:%M:%S")
-    write_data_to_csv([[timestamp, review, sentiment]])
-    print("New manual data added. Metrics will be updated on the next scheduled run.")
-
 def generate_and_save_gemini_data(style: str, quantity: int):
     prompt = f"""
     Generate a list of {quantity} realistic hotel reviews.

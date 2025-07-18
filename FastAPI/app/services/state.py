@@ -1,4 +1,3 @@
-# --- Centralized State Management ---
 app_state = {
     "retraining": {
         "is_training": False,
@@ -9,7 +8,6 @@ app_state = {
     "model_cache": {"model": None, "version": None, "model_info": None}
 }
 
-# --- Constants ---
 MODEL_NAME = "sentiment-classifier"
 MODEL_ALIAS = "prod"
 WINDOW_SIZE = 200
