@@ -1,6 +1,4 @@
 import os
-import subprocess
-import shutil
 from datetime import datetime
 from typing import Optional, Tuple
 import asyncio
@@ -11,13 +9,27 @@ from app.config import DATA_DIR
 class DVCManager:
     """Manages DVC operations for data versioning during retraining."""
     
-    def __init__(self, repo_root: str = "/app"):
+    def __init__(self, repo_root: str = None):
         """
         Initialize DVC manager.
         
         Args:
             repo_root: Root directory of the repository (inside container)
         """
+        if repo_root is None:
+            # Auto-detect repo root
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # Navigate up to find the repo root (where .dvc directory exists)
+            repo_root = current_dir
+            while repo_root != os.path.dirname(repo_root):  # Not at filesystem root
+                if os.path.exists(os.path.join(repo_root, '.dvc')):
+                    break
+                repo_root = os.path.dirname(repo_root)
+            
+            # If we're running from the test script at repo root
+            if not os.path.exists(os.path.join(repo_root, '.dvc')):
+                repo_root = os.getcwd()
+        
         self.repo_root = repo_root
         self.data_dir = os.path.join(repo_root, DATA_DIR)
         self.main_data_path = os.path.join(self.data_dir, 'data.csv')
@@ -133,55 +145,12 @@ class DVCManager:
             return True
         else:
             # Check if it's just "nothing to commit"
-            if "nothing to commit" in commit_output.lower():
+            if "nothing to commit" in commit_output.lower() or commit_output.strip() == "":
                 print("No changes to commit - data already up to date")
                 return True
             else:
                 print(f"Error creating git commit: {commit_output}")
                 return False
-    
-    async def should_track_new_data(self) -> bool:
-        """
-        Determine if new_data.csv should be tracked.
-        
-        Based on your description, new_data.csv is temporary storage,
-        but it might be useful to track it for debugging purposes.
-        
-        Returns:
-            bool: Whether new_data.csv should be tracked
-        """
-        # Check if new_data.csv exists and has substantial content
-        if not os.path.exists(self.new_data_path):
-            return False
-        
-        try:
-            # Get file size
-            file_size = os.path.getsize(self.new_data_path)
-            # Only track if it's larger than 1KB (has substantial content)
-            return file_size > 1024
-        except:
-            return False
-    
-    async def backup_new_data(self) -> bool:
-        """
-        Create a backup of new_data.csv before processing.
-        This is useful for debugging and recovery.
-        
-        Returns:
-            bool: True if backup was created successfully
-        """
-        if not os.path.exists(self.new_data_path):
-            return True  # Nothing to backup
-        
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = os.path.join(self.data_dir, f'new_data_backup_{timestamp}.csv')
-            shutil.copy2(self.new_data_path, backup_path)
-            print(f"Created backup of new_data.csv: {backup_path}")
-            return True
-        except Exception as e:
-            print(f"Error creating backup of new_data.csv: {e}")
-            return False
     
     async def get_data_info(self) -> dict:
         """

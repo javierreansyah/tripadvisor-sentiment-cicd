@@ -9,6 +9,7 @@ The system now automatically handles data versioning during the retraining proce
 ### Data Flow and Versioning Strategy
 
 1. **Main Data File (`data.csv`)**:
+
    - This is the primary training dataset
    - Tracked by DVC for version control
    - Grows over time as new data is appended during retraining
@@ -24,17 +25,19 @@ The system now automatically handles data versioning during the retraining proce
 When retraining is triggered, the following steps occur:
 
 #### Step 1: Data Management and Versioning
+
 1. **Ensure DVC Tracking**: Verify that `data.csv` is tracked by DVC
-2. **Backup New Data**: Create a timestamped backup of `new_data.csv`
-3. **Data Movement**: 
+2. **Data Movement**:
    - Move all but the last 200 rows from `new_data.csv` to `data.csv`
    - Keep the latest 200 rows in `new_data.csv` for monitoring
-4. **Create DVC Snapshot**: Create a versioned snapshot of the updated `data.csv`
+3. **Create DVC Snapshot**: Create a versioned snapshot of the updated `data.csv`
 
 #### Step 2: Model Training
+
 - Trigger the MLflow training pipeline with the updated data
 
 #### Step 3: Model Loading
+
 - Load the newly trained model if training was successful
 
 ## DVC Manager Features
@@ -45,12 +48,12 @@ The `DVCManager` class provides the following functionality:
 
 - `ensure_data_tracked()`: Ensures `data.csv` is tracked by DVC
 - `create_data_snapshot(message)`: Creates a versioned snapshot with optional commit message
-- `backup_new_data()`: Creates timestamped backups of `new_data.csv`
 - `get_data_info()`: Returns status information about data files
 
 ### Dashboard Integration
 
 The dashboard now displays:
+
 - DVC tracking status for main data
 - File sizes for both data files
 - Data file existence status
@@ -106,32 +109,35 @@ Data/
 ├── data.csv          # Main training data (DVC tracked)
 ├── data.csv.dvc      # DVC metadata file (Git tracked)
 ├── new_data.csv      # Temporary new data (not DVC tracked)
-├── .gitignore        # Ignores data.csv (managed by DVC)
-└── new_data_backup_* # Timestamped backups
+└── .gitignore        # Ignores data.csv (managed by DVC)
 ```
 
 ## Configuration
 
 ### DVC Configuration
+
 - Repository root: `/app` (inside container)
 - Data directory: `Data/`
 - Storage: Local cache (can be extended to remote storage)
 
 ### Environment Variables
+
 No additional environment variables are required for basic DVC functionality.
 
 ## Monitoring
 
 ### Dashboard Indicators
+
 - ✅ Green checkmarks: Files exist and are properly tracked
 - ❌ Red crosses: Files missing or not tracked
 - File sizes: Displayed in human-readable format
 
 ### Logging
+
 The system logs all DVC operations including:
+
 - Data tracking status
 - Snapshot creation
-- Backup operations
 - Error conditions
 
 ## Troubleshooting
@@ -139,6 +145,7 @@ The system logs all DVC operations including:
 ### Common Issues
 
 1. **DVC not tracking data.csv**:
+
    ```bash
    dvc add Data/data.csv
    git add Data/data.csv.dvc Data/.gitignore
@@ -146,6 +153,7 @@ The system logs all DVC operations including:
    ```
 
 2. **Git conflicts with DVC files**:
+
    ```bash
    git checkout Data/data.csv.dvc
    dvc checkout

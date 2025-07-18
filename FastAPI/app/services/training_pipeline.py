@@ -20,10 +20,6 @@ async def manage_retraining_data():
     if not await dvc_manager.ensure_data_tracked():
         print("Warning: Could not ensure DVC tracking for data.csv")
     
-    # Step 1.2: Create backup of new_data.csv before processing
-    print("Step 1.2: Creating backup of new_data.csv...")
-    await dvc_manager.backup_new_data()
-    
     if not os.path.exists(new_data_path): 
         print("No new data to process")
         return
@@ -45,8 +41,8 @@ async def manage_retraining_data():
     data_to_keep.to_csv(new_data_path, index=False)
     print(f"Kept last {len(data_to_keep)} rows in new_data.csv for future monitoring.")
     
-    # Step 1.3: Create DVC snapshot after data movement
-    print("Step 1.3: Creating DVC snapshot of updated data...")
+    # Step 1.2: Create DVC snapshot after data movement
+    print("Step 1.2: Creating DVC snapshot of updated data...")
     rows_appended = len(data_to_append) if not data_to_append.empty else 0
     snapshot_message = f"Data update: appended {rows_appended} rows, kept {len(data_to_keep)} for monitoring"
     
