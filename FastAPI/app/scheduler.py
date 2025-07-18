@@ -14,7 +14,7 @@ async def model_updater_scheduler():
     This is our "hot-swapping" mechanism.
     """
     while True:
-        await asyncio.sleep(300) # Check for a new model every 5 minutes
+        await asyncio.sleep(60) # Check for a new model every 5 minutes
         print("--- Running scheduled model update check ---")
         try:
             await load_and_cache_model()

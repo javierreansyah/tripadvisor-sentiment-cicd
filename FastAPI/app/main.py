@@ -6,7 +6,7 @@ import os
 import pandas as pd
 
 # Import routers and services
-from app.routers import home, data
+from app.routers import home, data, dashboard
 from app.scheduler import background_scheduler, model_updater_scheduler
 from app.services import calculate_and_set_all_metrics, load_and_cache_model
 from app.config import DATA_DIR, MLFLOW_TRACKING_URI
@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
     # Include the necessary routers
     app.include_router(home.router)
     app.include_router(data.router)
+    app.include_router(dashboard.router)
 
     @app.on_event("startup")
     async def startup_event():
