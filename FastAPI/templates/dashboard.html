@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retraining Dashboard</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; color: #333; margin: 2em; }
+        .container { max-width: 1200px; margin: auto; }
+        h1, h2 { color: #444; }
+        .status-box, .model-card { background: white; padding: 1.5em; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2em; }
+        .status-box p { font-size: 1.2em; font-weight: bold; }
+        .status-idle { color: #28a745; }
+        .status-training { color: #ffc107; }
+        .model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2em; }
+        .model-card h3 { border-bottom: 1px solid #eee; padding-bottom: 0.5em; margin-top: 0; }
+        .metrics-table { width: 100%; border-collapse: collapse; }
+        .metrics-table td { padding: 8px; border-bottom: 1px solid #eee; }
+        .metrics-table td:first-child { font-weight: bold; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .deploy-btn { background-color: #28a745; }
+        .deploy-btn:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Retraining & Deployment Dashboard</h1>
+
+        <div class="status-box">
+            <h2>Training Status</h2>
+            <p class="{{ 'status-training' if status.is_training else 'status-idle' }}">
+                {{ status.message }}
+            </p>
+            <form action="/retrain" method="post">
+                <button type="submit" {{ 'disabled' if status.is_training }}>
+                    Train New Model
+                </button>
+            </form>
+        </div>
+
+        <div class="status-box">
+            <h2>Data Versioning Status</h2>
+            <div id="dvc-status">
+                <p>Loading DVC status...</p>
+            </div>
+        </div>
+
+        <div class="model-grid">
+            <div class="model-card">
+                <h3>Production Model (Champion)</h3>
+                {% if champion %}
+                <table class="metrics-table">
+                    <tr><td>Version:</td><td>{{ champion.version }}</td></tr>
+                    <tr><td>Accuracy:</td><td>{{ "%.4f"|format(champion.accuracy) }}</td></tr>
+                    <tr><td>Run ID:</td><td>{{ champion.run_id }}</td></tr>
+                </table>
+                {% else %}
+                <p>No production model found.</p>
+                {% endif %}
+            </div>
+
+            <div class="model-card">
+                <h3>Latest Trained Model</h3>
+                {% if candidate %}
+                <table class="metrics-table">
+                    <tr><td>Version:</td><td>{{ candidate.version }}</td></tr>
+                    <tr><td>Accuracy:</td><td>{{ "%.4f"|format(candidate.accuracy) }}</td></tr>
+                    <tr><td>Run ID:</td><td>{{ candidate.run_id }}</td></tr>
+                </table>
+                <br>
+                <form action="/promote/{{ candidate.version }}" method="post">
+                    <button type="submit" class="deploy-btn">Set as Production Model</button>
+                </form>
+                {% else %}
+                <p>No trained models available. Run a training job to generate one.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to load DVC status
+        async function loadDVCStatus() {
+            try {
+                const response = await fetch('/api/dvc-status');
+                const result = await response.json();
+                
+                const dvcStatusDiv = document.getElementById('dvc-status');
+                
+                if (result.success) {
+                    const data = result.data;
+                    const formatSize = (bytes) => {
+                        if (bytes === 0) return '0 B';
+                        const k = 1024;
+                        const sizes = ['B', 'KB', 'MB', 'GB'];
+                        const i = Math.floor(Math.log(bytes) / Math.log(k));
+                        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                    };
+                    
+                    dvcStatusDiv.innerHTML = `
+                        <table class="metrics-table">
+                            <tr><td>Main Data Tracked:</td><td>${data.data_csv_tracked ? '✅ Yes' : '❌ No'}</td></tr>
+                            <tr><td>Main Data Size:</td><td>${formatSize(data.data_csv_size)}</td></tr>
+                            <tr><td>New Data Size:</td><td>${formatSize(data.new_data_csv_size)}</td></tr>
+                            <tr><td>Data Files Status:</td><td>
+                                data.csv: ${data.data_csv_exists ? '✅' : '❌'} | 
+                                new_data.csv: ${data.new_data_csv_exists ? '✅' : '❌'}
+                            </td></tr>
+                        </table>
+                    `;
+                } else {
+                    dvcStatusDiv.innerHTML = `<p style="color: red;">Error loading DVC status: ${result.error}</p>`;
+                }
+            } catch (error) {
+                document.getElementById('dvc-status').innerHTML = 
+                    `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Load DVC status when page loads
+        loadDVCStatus();
+        
+        // Refresh DVC status every 30 seconds
+        setInterval(loadDVCStatus, 30000);
+    </script>
+</body>
+</html>

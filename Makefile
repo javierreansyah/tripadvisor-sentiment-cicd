@@ -8,11 +8,9 @@ format:
 
 train:
 	mkdir -p Model Results
-	python Scripts/preprocess.py
-	python Scripts/train.py
+	python Scripts/train_pipeline.py
 
 eval:
-	python Scripts/eval.py
 	echo "## Model Metrics" > Results/report.md
 	if [ -f ./Results/metrics.txt ]; then cat ./Results/metrics.txt >> Results/report.md; fi
 	if [ -f ./Results/confusion_matrix.png ]; then \

@@ -18,6 +18,10 @@ python-multipart
 
 # Library for making async HTTP requests
 aiohttp
+httpx
+
+# Data versioning
+dvc
 
 # Timezone handling
 pytz

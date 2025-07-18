@@ -31,6 +31,10 @@ services:
       - AWS_SECRET_ACCESS_KEY=minioadmin
     volumes:
       - ./Data:/app/Data
+      - ./.dvc:/app/.dvc
+      - ./.git:/app/.git
+      - ./Data/.gitignore:/app/Data/.gitignore
+      - ./Data/data.csv.dvc:/app/Data/data.csv.dvc
     restart: unless-stopped
     depends_on:
       - mlflow
@@ -114,6 +118,10 @@ services:
       context: .
       dockerfile: MLFlow/Dockerfile
     container_name: training_runner
+    # The command is now to run the FastAPI server with Uvicorn
+    command: ["uvicorn", "MLFlow.app:app", "--host=0.0.0.0", "--port=5002"]
+    ports:
+      - "5002:5002" # Expose the port so the orchestrator can call it
     environment:
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
       - AWS_ACCESS_KEY_ID=minioadmin
