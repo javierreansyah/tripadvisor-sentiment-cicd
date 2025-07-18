@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 import asyncio
 
 from app.config import DATA_DIR
-
+from pytz import timezone
 
 class DVCManager:
     """Manages DVC operations for data versioning during retraining."""
@@ -17,23 +17,33 @@ class DVCManager:
             repo_root: Root directory of the repository (inside container)
         """
         if repo_root is None:
-            # Auto-detect repo root
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            # Navigate up to find the repo root (where .dvc directory exists)
-            repo_root = current_dir
-            while repo_root != os.path.dirname(repo_root):  # Not at filesystem root
-                if os.path.exists(os.path.join(repo_root, '.dvc')):
-                    break
-                repo_root = os.path.dirname(repo_root)
-            
-            # If we're running from the test script at repo root
-            if not os.path.exists(os.path.join(repo_root, '.dvc')):
-                repo_root = os.getcwd()
+            # For Docker containers, use /app as default
+            if os.path.exists('/app/.dvc'):
+                repo_root = '/app'
+            else:
+                # Auto-detect repo root for local development
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                repo_root = current_dir
+                while repo_root != os.path.dirname(repo_root):  # Not at filesystem root
+                    if os.path.exists(os.path.join(repo_root, '.dvc')):
+                        break
+                    repo_root = os.path.dirname(repo_root)
+                
+                # If we're running from the test script at repo root
+                if not os.path.exists(os.path.join(repo_root, '.dvc')):
+                    repo_root = os.getcwd()
         
         self.repo_root = repo_root
         self.data_dir = os.path.join(repo_root, DATA_DIR)
         self.main_data_path = os.path.join(self.data_dir, 'data.csv')
         self.new_data_path = os.path.join(self.data_dir, 'new_data.csv')
+        
+        # Debug information
+        print(f"DVC Manager initialized:")
+        print(f"  Repo root: {self.repo_root}")
+        print(f"  Data dir: {self.data_dir}")
+        print(f"  .dvc exists: {os.path.exists(os.path.join(self.repo_root, '.dvc'))}")
+        print(f"  .git exists: {os.path.exists(os.path.join(self.repo_root, '.git'))}")
     
     async def _run_dvc_command(self, command: list) -> Tuple[bool, str]:
         """
@@ -46,6 +56,8 @@ class DVCManager:
             Tuple of (success, output)
         """
         try:
+            print(f"Running command: {' '.join(command)} in {self.repo_root}")
+            
             # Change to repo root directory for DVC commands
             process = await asyncio.create_subprocess_exec(
                 *command,
@@ -56,13 +68,24 @@ class DVCManager:
             
             stdout, stderr = await process.communicate()
             
+            stdout_text = stdout.decode()
+            stderr_text = stderr.decode()
+            
+            print(f"Command exit code: {process.returncode}")
+            if stdout_text:
+                print(f"STDOUT: {stdout_text}")
+            if stderr_text:
+                print(f"STDERR: {stderr_text}")
+            
             if process.returncode == 0:
-                return True, stdout.decode()
+                return True, stdout_text
             else:
-                return False, stderr.decode()
+                return False, stderr_text
                 
         except Exception as e:
-            return False, f"Error running DVC command: {str(e)}"
+            error_msg = f"Error running DVC command: {str(e)}"
+            print(error_msg)
+            return False, error_msg
     
     async def ensure_data_tracked(self) -> bool:
         """
@@ -115,7 +138,8 @@ class DVCManager:
         print("Creating data snapshot with DVC...")
         
         # Create timestamp for default message
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        tz = timezone('Asia/Jakarta')
+        timestamp = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S WIB")
         commit_message = message or f"Data snapshot before retraining - {timestamp}"
         
         # First, ensure data is up to date in DVC

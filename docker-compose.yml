@@ -31,6 +31,10 @@ services:
       - AWS_SECRET_ACCESS_KEY=minioadmin
     volumes:
       - ./Data:/app/Data
+      - ./.dvc:/app/.dvc
+      - ./.git:/app/.git
+      - ./Data/.gitignore:/app/Data/.gitignore
+      - ./Data/data.csv.dvc:/app/Data/data.csv.dvc
     restart: unless-stopped
     depends_on:
       - mlflow
