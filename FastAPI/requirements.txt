@@ -20,5 +20,8 @@ python-multipart
 aiohttp
 httpx
 
+# Data versioning
+dvc
+
 # Timezone handling
 pytz

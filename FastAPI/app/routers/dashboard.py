@@ -8,6 +8,7 @@ from app.services import (
     promote_model_to_prod,
     app_state # Corrected: Import the main app_state dictionary
 )
+from app.services.dvc_manager import dvc_manager
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -35,3 +36,18 @@ async def promote_model(version: int):
     """Sets the specified model version as the production model."""
     await promote_model_to_prod(version)
     return RedirectResponse(url="/dashboard", status_code=303)
+
+@router.get("/api/dvc-status")
+async def get_dvc_status():
+    """Returns current DVC status and data information."""
+    try:
+        data_info = await dvc_manager.get_data_info()
+        return {
+            "success": True,
+            "data": data_info
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }

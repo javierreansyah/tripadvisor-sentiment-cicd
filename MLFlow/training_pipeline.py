@@ -81,8 +81,8 @@ def run_training_pipeline():
         # Create a scikit-learn pipeline
         pipeline = Pipeline([
             ('vectorizer', TfidfVectorizer(
-                preprocessor=preprocess_for_vectorizer, # Use the preprocessor here
-                tokenizer=word_tokenize, # Tokenizer is still useful for the vectorizer
+                preprocessor=preprocess_for_vectorizer,
+                tokenizer=word_tokenize,
                 ngram_range=params["ngram_range"], 
                 max_features=params["max_features"]
             )),
