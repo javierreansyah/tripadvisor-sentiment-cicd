@@ -6,9 +6,6 @@ WORKDIR /app
 COPY MLFlow/requirements.txt .
 RUN pip install -r requirements.txt
 
-# Download NLTK data
-RUN python -m nltk.downloader stopwords wordnet punkt
-
 # Copy the entire project context
 COPY . .
 

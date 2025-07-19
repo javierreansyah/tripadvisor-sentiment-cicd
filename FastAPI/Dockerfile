@@ -17,9 +17,6 @@ RUN pip install -r requirements.txt
 RUN git config --global user.email "docker@example.com" && \
     git config --global user.name "Docker Container"
 
-# Download NLTK data required for the model's preprocessor
-RUN python -m nltk.downloader stopwords wordnet punkt
-
 # Pre-download the embedding model to reduce startup time
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 

@@ -1,13 +1,9 @@
 import os
 import pandas as pd
 import re
-import nltk
 import mlflow
 import mlflow.sklearn
 import joblib
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-from nltk import word_tokenize
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -30,25 +26,20 @@ RESULTS_DIR = os.path.join(ROOT_DIR, 'Results')
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-# --- Preprocessing function for the Vectorizer ---
+# --- Simple preprocessing function for the Vectorizer ---
 # This function will be used *inside* the pipeline's vectorizer
 def preprocess_for_vectorizer(text):
-    lemmatizer = WordNetLemmatizer()
-    stop_words = set(stopwords.words('english'))
-    
     # Standardize text
     text = re.sub(r"http\S+", "", text)
     text = re.sub(r"http", "", text)
-    text = re.sub(r"@/S+", "", text)
+    text = re.sub(r"@\S+", "", text)
     text = re.sub(r"[^A-Za-z0-9(),!?@\'\`\"\_\n]", " ", text)
     text = text.replace("@", " at ")
     text = text.lower()
     
-    # Tokenize, remove stopwords, and lemmatize
-    tokens = word_tokenize(text)
-    tokens = [word for word in tokens if word not in stop_words]
-    tokens = [lemmatizer.lemmatize(word) for word in tokens]
-    return ' '.join(tokens)
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+    return text
 
 
 # --- Main Training and Evaluation Logic ---
@@ -82,9 +73,10 @@ def run_training_pipeline():
         pipeline = Pipeline([
             ('vectorizer', TfidfVectorizer(
                 preprocessor=preprocess_for_vectorizer,
-                tokenizer=word_tokenize,
+                stop_words='english',  # Use sklearn's built-in English stopwords
                 ngram_range=params["ngram_range"], 
-                max_features=params["max_features"]
+                max_features=params["max_features"],
+                token_pattern=r'\b[A-Za-z][A-Za-z]+\b'  # Only alphabetic tokens with 2+ characters
             )),
             ('classifier', LogisticRegression(
                 max_iter=params["max_iter"], 

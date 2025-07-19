@@ -1,5 +1,6 @@
 import asyncio
 import mlflow
+import mlflow.sklearn
 from mlflow.tracking import MlflowClient
 from mlflow.exceptions import RestException
 
@@ -17,7 +18,7 @@ async def load_and_cache_model():
             return
 
         print(f"State Update: New model version {latest_version_info.version} found. Loading...")
-        model = await asyncio.to_thread(mlflow.pyfunc.load_model, model_uri=latest_version_info.source)
+        model = await asyncio.to_thread(mlflow.sklearn.load_model, model_uri=latest_version_info.source)
         
         run_id = latest_version_info.run_id
         

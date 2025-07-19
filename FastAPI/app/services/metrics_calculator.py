@@ -156,11 +156,23 @@ async def calculate_model_accuracy():
 
     def _predict_sequentially_sync(sample_data):
         model = app_state["model_cache"]["model"]
-        return [model.predict(pd.DataFrame([review], columns=['Review']))[0] for review in sample_data]
+        predictions = []
+        
+        for review in sample_data:
+            # Pass raw text directly to the sklearn pipeline
+            # The pipeline will handle preprocessing internally
+            pred = model.predict([review])[0]
+            predictions.append(pred)
+        
+        return predictions
 
-    predictions = await asyncio.to_thread(_predict_sequentially_sync, X_sample)
-    if not predictions: return 0.0
-    return accuracy_score(y_sample, predictions)
+    result = await asyncio.to_thread(_predict_sequentially_sync, X_sample)
+    if not result: return 0.0
+    
+    predictions = result
+    accuracy = accuracy_score(y_sample, predictions)
+    
+    return accuracy
 
 async def calculate_and_set_all_metrics():
     """Calculate and set all metrics including accuracy and drift components."""
