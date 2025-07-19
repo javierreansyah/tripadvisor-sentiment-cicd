@@ -1,7 +1,6 @@
 install:
 	pip install --upgrade pip &&\
-		if [ -f requirements.txt ]; then pip install -r requirements.txt; fi &&\
-		python -m nltk.downloader punkt stopwords wordnet
+		if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
 format:
 	black Scripts/*.py

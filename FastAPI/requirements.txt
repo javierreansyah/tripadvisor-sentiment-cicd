@@ -25,3 +25,6 @@ dvc
 
 # Timezone handling
 pytz
+
+# Embedding model for better drift detection
+sentence-transformers>=2.0.0

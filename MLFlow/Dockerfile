@@ -4,10 +4,7 @@ WORKDIR /app
 
 # Copy requirements from the MLFlow directory and install
 COPY MLFlow/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Download NLTK data
-RUN python -m nltk.downloader stopwords wordnet punkt
+RUN pip install -r requirements.txt
 
 # Copy the entire project context
 COPY . .

@@ -6,12 +6,8 @@
 import os
 import pandas as pd
 import re
-import nltk
 import matplotlib.pyplot as plt
 import seaborn as sns
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-from nltk import word_tokenize
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -28,40 +24,34 @@ RESULTS_DIR = os.path.join(ROOT_DIR, 'Results')
 os.makedirs(MODEL_DIR, exist_ok=True)
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-def standardize_text(text):
-    """Standardize text by removing URLs and special characters"""
+def preprocess_for_vectorizer(text):
+    """Simple preprocessing function for the Vectorizer"""
+    # Standardize text
     text = re.sub(r"http\S+", "", text)
     text = re.sub(r"http", "", text)
-    text = re.sub(r"@/S+", "", text)
+    text = re.sub(r"@\S+", "", text)
     text = re.sub(r"[^A-Za-z0-9(),!?@\'\`\"\_\n]", " ", text)
     text = text.replace("@", " at ")
-    return text.lower()
-
-def preprocess_review(text):
-    """Preprocess review text with tokenization, stop word removal, and lemmatization"""
-    text = standardize_text(text)
-    tokens = word_tokenize(text)
-    tokens = [word for word in tokens if word not in stop_words]
-    tokens = [lemmatizer.lemmatize(word) for word in tokens]
-    return ' '.join(tokens)
+    text = text.lower()
+    
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+    return text
 
 def load_and_preprocess_data():
-    """Load and preprocess the raw data"""
-    print("Loading and preprocessing data...")
+    """Load the raw data"""
+    print("Loading data...")
     
     # Load raw data
     raw_path = os.path.join(DATA_DIR, 'ci_train_data.csv')
     df = pd.read_csv(raw_path)
     
-    # Apply preprocessing
-    df['Review'] = df['Review'].apply(preprocess_review)
-    
-    # Split data
+    # Split data without preprocessing (vectorizer will handle it)
     X_train, X_test, y_train, y_test = train_test_split(
         df['Review'], df['Sentiment'], test_size=0.2, random_state=42
     )
     
-    print(f"Data loaded and preprocessed:")
+    print(f"Data loaded:")
     print(f"  Training samples: {len(X_train)}")
     print(f"  Test samples: {len(X_test)}")
     
@@ -71,12 +61,18 @@ def train_model(X_train, y_train):
     """Train the TF-IDF + Logistic Regression model"""
     print("Training model...")
     
-    # Create and fit vectorizer
-    vectorizer = TfidfVectorizer(ngram_range=(1, 3), max_features=10000, tokenizer=word_tokenize)
+    # Create and fit vectorizer with built-in preprocessing
+    vectorizer = TfidfVectorizer(
+        preprocessor=preprocess_for_vectorizer,
+        stop_words='english',  # Use sklearn's built-in English stopwords
+        ngram_range=(1, 3), 
+        max_features=10000,
+        token_pattern=r'\b[A-Za-z][A-Za-z]+\b'  # Only alphabetic tokens with 2+ characters
+    )
     X_train_tfidf = vectorizer.fit_transform(X_train)
     
     # Train model
-    model = LogisticRegression(max_iter=1000, solver='lbfgs')
+    model = LogisticRegression(max_iter=1000, solver='lbfgs', random_state=42)
     model.fit(X_train_tfidf, y_train)
     
     # Save model and vectorizer
@@ -134,13 +130,8 @@ def main():
     print("Starting TripAdvisor Sentiment Analysis Training Pipeline")
     print("=" * 60)
     
-    # Initialize NLTK components
-    global lemmatizer, stop_words
-    lemmatizer = WordNetLemmatizer()
-    stop_words = set(stopwords.words('english'))
-    
     try:
-        # Step 1: Load and preprocess data
+        # Step 1: Load data
         X_train, X_test, y_train, y_test = load_and_preprocess_data()
         
         # Step 2: Train model

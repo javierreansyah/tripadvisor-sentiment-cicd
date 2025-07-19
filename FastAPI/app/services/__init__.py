@@ -26,7 +26,6 @@ from .training_pipeline import (
 # Data management
 from .data_manager import (
     write_data_to_csv,
-    add_manual_data,
     generate_and_save_gemini_data
 )
 
@@ -58,7 +57,6 @@ __all__ = [
     
     # Data management
     'write_data_to_csv',
-    'add_manual_data',
     'generate_and_save_gemini_data',
     
     # Metrics

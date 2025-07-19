@@ -1,12 +1,12 @@
 import asyncio
 import mlflow
+import mlflow.sklearn
 from mlflow.tracking import MlflowClient
 from mlflow.exceptions import RestException
 
 from .state import app_state, MODEL_NAME, MODEL_ALIAS
 
 # --- Model Loading & State Update Service ---
-
 async def load_and_cache_model():
     """Loads the latest production model and updates the central app_state."""
     print(f"State Update: Checking for production model '{MODEL_NAME}@{MODEL_ALIAS}'...")
@@ -18,7 +18,7 @@ async def load_and_cache_model():
             return
 
         print(f"State Update: New model version {latest_version_info.version} found. Loading...")
-        model = await asyncio.to_thread(mlflow.pyfunc.load_model, model_uri=latest_version_info.source)
+        model = await asyncio.to_thread(mlflow.sklearn.load_model, model_uri=latest_version_info.source)
         
         run_id = latest_version_info.run_id
         
@@ -61,16 +61,14 @@ async def get_latest_trained_model():
     client = MlflowClient()
     
     try:
-        # Get the latest version
         versions = client.search_model_versions(f"name='{MODEL_NAME}'")
         if not versions:
             print("No model versions found.")
             return
             
-        latest_version = versions[0]  # Already sorted by version number
+        latest_version = versions[0]
         run_id = latest_version.run_id
         
-        # Get the run information to fetch metrics
         run = client.get_run(run_id)
         accuracy = run.data.metrics.get("accuracy", 0.0)
         
