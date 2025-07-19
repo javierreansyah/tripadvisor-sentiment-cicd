@@ -7,7 +7,6 @@ from datetime import datetime
 
 from app.config import DATA_DIR
 
-# --- Data Handling & Metrics (Unchanged) ---
 def write_data_to_csv(data_to_write: list):
     new_data_path = os.path.join(DATA_DIR, 'new_data.csv')
     header_exists = os.path.exists(new_data_path) and os.path.getsize(new_data_path) > 0

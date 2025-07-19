@@ -95,7 +95,7 @@ services:
   mlflow:
     build:
       context: .
-      dockerfile: MLFlow_Server/Dockerfile
+      dockerfile: MLFlow/Server/Dockerfile
     container_name: mlflow_server
     restart: unless-stopped
     ports:

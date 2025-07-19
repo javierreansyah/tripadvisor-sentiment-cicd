@@ -25,15 +25,6 @@ def create_app() -> FastAPI:
         """On app startup, perform all initialization tasks."""
         print("--- Server starting up: Loading initial model for metrics calculation... ---")
         await load_and_cache_model()
-        
-        print("--- Calculating initial metrics... ---")
-        if not os.path.exists(os.path.join(DATA_DIR, 'data.csv')):
-            os.makedirs(DATA_DIR, exist_ok=True)
-            pd.DataFrame({
-                'Review': ['good', 'bad', 'great', 'terrible', 'ok'],
-                'Sentiment': [1, 0, 1, 0, 1]
-            }).to_csv(os.path.join(DATA_DIR, 'data.csv'), index=False)
-        
         await calculate_and_set_all_metrics()
 
         print("--- Starting background schedulers... ---")
