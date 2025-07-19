@@ -38,7 +38,7 @@ async def promote_model(version: int):
     return RedirectResponse(url="/", status_code=303)
 
 @router.post("/generate")
-async def handle_generate_data(style: str = Form(...), quantity: int = Form(...)):
+async def handle_generate_data(style: str = Form(None), quantity: int = Form(...)):
     """
     Handles the Gemini data generation request by calling the generation service.
     """

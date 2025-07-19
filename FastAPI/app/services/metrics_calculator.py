@@ -1,62 +1,101 @@
 import asyncio
 import os
 import pandas as pd
-import mlflow
-import joblib
 import numpy as np
-from scipy.stats import ks_2samp, wasserstein_distance
+from scipy.stats import ks_2samp
 from sklearn.metrics import accuracy_score
+from sentence_transformers import SentenceTransformer
 import sys
 
 from app.config import DATA_DIR
-from app.metrics import accuracy_gauge, KS_gauge, Wasserstein_gauge
-from app.preprocessing import preprocess_for_vectorizer
+from app.metrics import (
+    accuracy_gauge, 
+    drift_score_gauge, 
+    semantic_drift_gauge, 
+    centroid_drift_gauge, 
+    spread_drift_gauge
+)
 from .state import app_state, WINDOW_SIZE
+
+# Global embedding model instance for efficient reuse
+_embedding_model = None
+
+def get_embedding_model():
+    """Get or create the embedding model instance."""
+    global _embedding_model
+    if _embedding_model is None:
+        # Using a lightweight, fast model that's good for semantic similarity
+        print("Loading embedding model: all-MiniLM-L6-v2")
+        _embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        print("Embedding model loaded successfully")
+    return _embedding_model
+
+def calculate_embedding_drift_metrics(ref_embeddings, new_embeddings):
+    """
+    Calculate multiple drift metrics using embeddings.
+    Returns individual components and combined drift score.
+    """
+    # Method 1: Compare centroid distances (Euclidean)
+    ref_centroid = np.mean(ref_embeddings, axis=0)
+    new_centroid = np.mean(new_embeddings, axis=0)
+    centroid_distance = np.linalg.norm(ref_centroid - new_centroid)
+    
+    # Method 2: Compare embedding spreads using standard deviation
+    ref_std = np.std(ref_embeddings, axis=0)
+    new_std = np.std(new_embeddings, axis=0)
+    spread_distance = np.linalg.norm(ref_std - new_std)
+    
+    # Method 3: KS test on cosine similarities to centroid
+    ref_similarities = np.array([
+        np.dot(emb, ref_centroid) / (np.linalg.norm(emb) * np.linalg.norm(ref_centroid))
+        for emb in ref_embeddings
+    ])
+    new_similarities = np.array([
+        np.dot(emb, ref_centroid) / (np.linalg.norm(emb) * np.linalg.norm(ref_centroid))
+        for emb in new_embeddings
+    ])
+    semantic_ks_stat, _ = ks_2samp(ref_similarities, new_similarities)
+    
+    # Combine metrics into a single drift score (weighted average)
+    # Normalize centroid_distance and spread_distance to [0,1] range approximately
+    normalized_centroid = min(centroid_distance / 10.0, 1.0)  # Empirical scaling
+    normalized_spread = min(spread_distance / 5.0, 1.0)      # Empirical scaling
+    
+    # Combined drift score: emphasize semantic similarity (KS) and structure changes
+    combined_drift_score = 0.5 * semantic_ks_stat + 0.3 * normalized_centroid + 0.2 * normalized_spread
+    
+    return {
+        'semantic_ks': semantic_ks_stat,
+        'centroid_distance': centroid_distance,
+        'spread_distance': spread_distance,
+        'combined_drift_score': combined_drift_score
+    }
 
 async def calculate_drift_metrics():
     def _calculate_sync():
         try:
-            # Get the latest trained model info to retrieve the vectorizer
-            model_info = app_state["model_cache"]["model_info"]
-            if not model_info or "run_id" not in model_info:
-                print("No model info available for vectorizer retrieval")
-                return 0.0, 0.0
-            
-            # Set MLflow tracking URI
-            mlflow.set_tracking_uri("http://mlflow:5000")
-            run_id = model_info["run_id"]
-            
-            # Download vectorizer artifact from MLflow
-            try:
-                # Make the preprocessing function available in the global namespace
-                # This is needed because the vectorizer was pickled with a reference to this function
-                import __main__
-                __main__.preprocess_for_vectorizer = preprocess_for_vectorizer
-                
-                print(f"Downloading vectorizer artifact for run: {run_id}")
-                vectorizer_path = mlflow.artifacts.download_artifacts(
-                    run_id=run_id,
-                    artifact_path="preprocessing/vectorizer.pkl"
-                )
-                print(f"Loading vectorizer from: {vectorizer_path}")
-                vectorizer = joblib.load(vectorizer_path)
-                print("Vectorizer loaded successfully")
-            except Exception as e:
-                print(f"Error loading vectorizer from MLflow: {e}")
-                import traceback
-                traceback.print_exc()
-                return 0.0, 0.0
-            
             # Load data
             ref_data_path = os.path.join(DATA_DIR, 'data.csv')
             new_data_path = os.path.join(DATA_DIR, 'new_data.csv')
             if not os.path.exists(ref_data_path) or not os.path.exists(new_data_path): 
-                return 0.0, 0.0
+                print("Reference or new data files not found")
+                return {
+                    'semantic_ks': 0.0,
+                    'centroid_distance': 0.0,
+                    'spread_distance': 0.0,
+                    'combined_drift_score': 0.0
+                }
                 
             df_main = pd.read_csv(ref_data_path)
             df_new = pd.read_csv(new_data_path)
             if df_new.empty: 
-                return 0.0, 0.0
+                print("New data is empty")
+                return {
+                    'semantic_ks': 0.0,
+                    'centroid_distance': 0.0,
+                    'spread_distance': 0.0,
+                    'combined_drift_score': 0.0
+                }
             
             # Get latest new data for drift calculation
             df_new['Timestamp'] = pd.to_datetime(df_new['Timestamp'])
@@ -65,31 +104,40 @@ async def calculate_drift_metrics():
             # Sample reference data to match size
             df_ref_sample = df_main.sample(n=len(df_new_latest), random_state=42)
             
-            # Vectorize the review texts (not sentiments)
+            # Get reviews for embedding
             ref_reviews = df_ref_sample['Review'].values
             new_reviews = df_new_latest['Review'].values
             
-            # Transform using the trained vectorizer
-            ref_vectors = vectorizer.transform(ref_reviews).toarray()
-            new_vectors = vectorizer.transform(new_reviews).toarray()
+            # Get embedding model
+            embedding_model = get_embedding_model()
             
-            # Calculate drift metrics on vectorized features
-            # For KS test, we'll use the mean of each sample's feature vector
-            ref_feature_means = np.mean(ref_vectors, axis=1)
-            new_feature_means = np.mean(new_vectors, axis=1)
+            # Generate embeddings for both datasets
+            print("Generating embeddings for reference data...")
+            ref_embeddings = embedding_model.encode(ref_reviews, batch_size=16, show_progress_bar=False)
+            print("Generating embeddings for new data...")
+            new_embeddings = embedding_model.encode(new_reviews, batch_size=16, show_progress_bar=False)
             
-            ks_stat, _ = ks_2samp(ref_feature_means, new_feature_means)
+            # Calculate improved drift metrics using embeddings
+            drift_metrics = calculate_embedding_drift_metrics(ref_embeddings, new_embeddings)
             
-            # For Wasserstein distance, we'll use the mean feature vector of each dataset
-            ref_centroid = np.mean(ref_vectors, axis=0)
-            new_centroid = np.mean(new_vectors, axis=0)
-            wass_dist = wasserstein_distance(ref_centroid, new_centroid)
+            print(f"Embedding-based drift metrics:")
+            print(f"  Semantic KS: {drift_metrics['semantic_ks']:.4f}")
+            print(f"  Centroid Distance: {drift_metrics['centroid_distance']:.4f}")
+            print(f"  Spread Distance: {drift_metrics['spread_distance']:.4f}")
+            print(f"  Combined Drift Score: {drift_metrics['combined_drift_score']:.4f}")
             
-            return ks_stat, wass_dist
+            return drift_metrics
             
         except Exception as e:
             print(f"Error calculating drift metrics: {e}")
-            return 0.0, 0.0
+            import traceback
+            traceback.print_exc()
+            return {
+                'semantic_ks': 0.0,
+                'centroid_distance': 0.0,
+                'spread_distance': 0.0,
+                'combined_drift_score': 0.0
+            }
     return await asyncio.to_thread(_calculate_sync)
 
 async def calculate_model_accuracy():
@@ -115,8 +163,24 @@ async def calculate_model_accuracy():
     return accuracy_score(y_sample, predictions)
 
 async def calculate_and_set_all_metrics():
-    accuracy, (ks_stat, wd_dist) = await asyncio.gather(calculate_model_accuracy(), calculate_drift_metrics())
+    """Calculate and set all metrics including accuracy and drift components."""
+    accuracy, drift_metrics = await asyncio.gather(
+        calculate_model_accuracy(), 
+        calculate_drift_metrics()
+    )
+    
+    # Set accuracy gauge
     accuracy_gauge.set(accuracy)
-    KS_gauge.set(ks_stat)
-    Wasserstein_gauge.set(wd_dist)
-    print(f"Metrics updated - Accuracy: {accuracy:.4f}, KS: {ks_stat:.4f}, WD: {wd_dist:.4f}")
+    
+    # Set drift component gauges
+    semantic_drift_gauge.set(drift_metrics['semantic_ks'])
+    centroid_drift_gauge.set(drift_metrics['centroid_distance'])
+    spread_drift_gauge.set(drift_metrics['spread_distance'])
+    drift_score_gauge.set(drift_metrics['combined_drift_score'])
+    
+    print(f"Metrics updated:")
+    print(f"  Accuracy: {accuracy:.4f}")
+    print(f"  Semantic Drift (KS): {drift_metrics['semantic_ks']:.4f}")
+    print(f"  Centroid Drift: {drift_metrics['centroid_distance']:.4f}")
+    print(f"  Spread Drift: {drift_metrics['spread_distance']:.4f}")
+    print(f"  Combined Drift Score: {drift_metrics['combined_drift_score']:.4f}")

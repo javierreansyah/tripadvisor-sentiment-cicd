@@ -112,13 +112,14 @@
                 <div class="form-container">
                     <h2>Generate Synthetic Data with Gemini</h2>
                     <form method="post" action="/generate">
-                        Review Style (e.g., sarcastic, gen z, formal): <br />
-                        <input type="text" name="style" value="realistic" required /><br />
+                        Review Style (optional - e.g., sarcastic, gen z, formal): <br />
+                        <input type="text" name="style" placeholder="Leave empty for natural style" /><br />
                         Quantity: <br />
                         <select name="quantity">
+                            <option value="1">1</option>
+                            <option value="3" selected>3</option>
+                            <option value="5">5</option>
                             <option value="10">10</option>
-                            <option value="20" selected>20</option>
-                            <option value="30">30</option>
                         </select><br /><br />
                         <input type="submit" value="Generate Data" class="generate-btn" />
                     </form>

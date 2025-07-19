@@ -7,12 +7,23 @@ accuracy_gauge = Gauge(
     'Current accuracy of the prediction model'
 )
 
-KS_gauge = Gauge(
-    'ks_statistic',
-    'Kolmogorov-Smirnov statistic for data drift'
+# Data drift metrics using embeddings
+drift_score_gauge = Gauge(
+    'drift_score',
+    'Combined data drift score based on embedding analysis'
 )
 
-Wasserstein_gauge = Gauge(
-    'wasserstein_distance',
-    'Wasserstein distance for data drift'
+semantic_drift_gauge = Gauge(
+    'semantic_drift_ks',
+    'Kolmogorov-Smirnov statistic for semantic similarity drift'
+)
+
+centroid_drift_gauge = Gauge(
+    'centroid_drift',
+    'Euclidean distance between embedding centroids'
+)
+
+spread_drift_gauge = Gauge(
+    'spread_drift',
+    'Difference in embedding spread/variance between datasets'
 )

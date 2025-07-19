@@ -11,7 +11,7 @@ WORKDIR /app
 
 # Copy the requirements file and install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Configure git (required for DVC)
 RUN git config --global user.email "docker@example.com" && \
@@ -19,6 +19,9 @@ RUN git config --global user.email "docker@example.com" && \
 
 # Download NLTK data required for the model's preprocessor
 RUN python -m nltk.downloader stopwords wordnet punkt
+
+# Pre-download the embedding model to reduce startup time
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
 # Copy the entire 'app' directory (containing your modular code)
 COPY app/ ./app

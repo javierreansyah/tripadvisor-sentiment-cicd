@@ -1,7 +1,7 @@
 # Core libraries for evaluation and serving
-pandas>=1.5.0
-scikit-learn>=1.5.2
-numpy>=1.26.4
+pandas==1.5.0
+scikit-learn==1.5.2
+numpy==1.26.4
 scipy
 mlflow-skinny  # Lightweight client for model loading
 boto3          # AWS SDK for Python, needed by MLflow for S3 access
@@ -25,3 +25,6 @@ dvc
 
 # Timezone handling
 pytz
+
+# Embedding model for better drift detection
+sentence-transformers>=2.0.0
