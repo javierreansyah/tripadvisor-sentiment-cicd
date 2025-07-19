@@ -5,42 +5,30 @@
 
 import gradio as gr
 from skops import io as skops_io
-import nltk
 import re
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-from nltk import word_tokenize
 
-nltk.download('stopwords')
-nltk.download('punkt')
-nltk.download('wordnet')
+def preprocess_for_vectorizer(text):
+    """Simple preprocessing function for the Vectorizer"""
+    # Standardize text
+    text = re.sub(r"http\S+", "", text)
+    text = re.sub(r"http", "", text)
+    text = re.sub(r"@\S+", "", text)
+    text = re.sub(r"[^A-Za-z0-9(),!?@\'\`\"\_\n]", " ", text)
+    text = text.replace("@", " at ")
+    text = text.lower()
+    
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+    return text
 
 model = skops_io.load('Model/logreg_tfidf.skops')
-vectorizer = skops_io.load('Model/tfidf_vectorizer.skops', trusted=[nltk.tokenize.word_tokenize])
+vectorizer = skops_io.load('Model/tfidf_vectorizer.skops', trusted=[preprocess_for_vectorizer])
 
 LABELS = ['Negative', 'Positive']
 
-def standardize_text(text):
-    text = re.sub(r"http\S+", "", text)
-    text = re.sub(r"http", "", text)
-    text = re.sub(r"@/S+", "", text)
-    text = re.sub(r"[^A-Za-z0-9(),!?@\'\`\"\_\n]", " ", text)
-    text = text.replace("@", " at ")
-    return text.lower()
-
-lemmatizer = WordNetLemmatizer()
-stop_words = set(stopwords.words('english'))
-
-def preprocess_review(text):
-    text = standardize_text(text)
-    tokens = word_tokenize(text)
-    tokens = [word for word in tokens if word not in stop_words]
-    tokens = [lemmatizer.lemmatize(word) for word in tokens]
-    return ' '.join(tokens)
-
 def predict_sentiment(text):
-    cleaned_text = preprocess_review(text)
-    X_tfidf = vectorizer.transform([cleaned_text])
+    # The vectorizer will handle all preprocessing automatically
+    X_tfidf = vectorizer.transform([text])
     proba = model.predict_proba(X_tfidf)[0]
     pred = model.predict(X_tfidf)[0]
     return {LABELS[0]: float(proba[0]), LABELS[1]: float(proba[1])}

@@ -4,7 +4,6 @@ WORKDIR /app
 
 COPY App/requirements.txt . 
 RUN pip install --no-cache-dir -r requirements.txt
-RUN python -m nltk.downloader stopwords wordnet punkt
 
 COPY App/ ./App
 COPY Model/ ./Model
