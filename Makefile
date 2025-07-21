@@ -1,6 +1,6 @@
 install:
 	pip install --upgrade pip &&\
-		if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+		if [ -f Scripts/requirements.txt ]; then pip install -r Scripts/requirements.txt; fi
 
 format:
 	black Scripts/*.py
@@ -33,8 +33,7 @@ hf-login:
 
 push-hub:
 	huggingface-cli upload javierreansyah/Hotel-Review ./App . --repo-type=space --commit-message="Sync App files"
-	huggingface-cli upload javierreansyah/Hotel-Review ./Model/logreg_tfidf.skops Model/logreg_tfidf.skops --repo-type=space --commit-message="Sync Model File"
-	huggingface-cli upload javierreansyah/Hotel-Review ./Model/tfidf_vectorizer.skops Model/tfidf_vectorizer.skops --repo-type=space --commit-message="Sync Vectorizer File"
+	huggingface-cli upload javierreansyah/Hotel-Review ./Model/sentiment_pipeline.skops Model/sentiment_pipeline.skops --repo-type=space --commit-message="Sync Pipeline Model File"
 	huggingface-cli upload javierreansyah/Hotel-Review ./Results/metrics.txt Results/metrics.txt --repo-type=space --commit-message="Sync Metrics File"
 
 deploy: hf-login push-hub
