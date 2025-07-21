@@ -25,13 +25,24 @@ async def manage_retraining_data():
     
     print(f"Processing {len(df_new)} rows from new_data.csv")
     df_new.sort_values('Timestamp', ascending=True, inplace=True)
-    data_to_append = df_new.iloc[:-WINDOW_SIZE]
+    
+    # Determine how much data to append and keep
+    if len(df_new) > WINDOW_SIZE:
+        # Randomly sample WINDOW_SIZE rows to keep
+        data_to_keep = df_new.sample(n=WINDOW_SIZE, random_state=42)
+        # The rest goes to training data
+        data_to_append = df_new.drop(data_to_keep.index)
+    else:
+        # If we have less than WINDOW_SIZE rows, keep all as monitoring data
+        data_to_keep = df_new.copy()
+        data_to_append = pd.DataFrame()
     
     if not data_to_append.empty:
         data_to_append.to_csv(main_data_path, mode='a', header=False, index=False)
         print(f"Appended {len(data_to_append)} rows to main training data.")
     
-    data_to_keep = df_new.iloc[-WINDOW_SIZE:]
+    # Sort the data to keep by Timestamp before saving
+    data_to_keep = data_to_keep.sort_values('Timestamp', ascending=True)
     data_to_keep.to_csv(new_data_path, index=False)
     print(f"Kept last {len(data_to_keep)} rows in new_data.csv for future monitoring.")
     
