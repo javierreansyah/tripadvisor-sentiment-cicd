@@ -21,6 +21,9 @@ mlflow.set_experiment("Sentiment Analysis")
 mlflow.sklearn.autolog(
     log_model_signatures=False,
     log_models=False,
+    log_datasets=False,
+    log_input_examples=False,
+    log_post_training_metrics=False,
     disable=False,
     exclusive=False,
     disable_for_unsupported_versions=False,
@@ -48,8 +51,30 @@ def preprocess_for_vectorizer(text):
 
 # --- Training and Evaluation Logic ---
 def run_training_pipeline():
-    with mlflow.start_run() as run:
+    # Generate run name with timestamp and version
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Get existing runs count for versioning
+    experiment = mlflow.get_experiment_by_name("Sentiment Analysis")
+    if experiment:
+        runs = mlflow.search_runs(experiment_ids=[experiment.experiment_id])
+        version_number = len(runs) + 1
+    else:
+        version_number = 1
+    
+    run_name = f"sentiment_model_v{version_number}_{timestamp}"
+    
+    with mlflow.start_run(run_name=run_name) as run:
         print(f"Starting MLflow Run: {run.info.run_id}")
+        print(f"Run Name: {run_name}")
+        
+        # Add tags for better organization
+        mlflow.set_tag("model_type", "sentiment_classifier")
+        mlflow.set_tag("version", f"v{version_number}")
+        mlflow.set_tag("algorithm", "logistic_regression")
+        mlflow.set_tag("feature_extraction", "tfidf")
+        mlflow.set_tag("created_by", "training_pipeline")
 
         print("--- Step 1: Loading Raw Data ---")
         raw_path = os.path.join(DATA_DIR, 'data.csv')
@@ -78,20 +103,6 @@ def run_training_pipeline():
 
         pipeline.fit(X_train, y_train)
         print("Training complete.")
-        
-        # Check what artifacts autologging created
-        print("--- Checking Autologged Artifacts ---")
-        try:
-            current_run = mlflow.active_run()
-            if current_run:
-                run_id = current_run.info.run_id
-                client = mlflow.tracking.MlflowClient()
-                artifacts = client.list_artifacts(run_id)
-                print(f"Artifacts in run {run_id}:")
-                for artifact in artifacts:
-                    print(f"  - {artifact.path}")
-        except Exception as e:
-            print(f"Could not list artifacts: {e}")
 
         print("--- Step 3: Evaluating Model ---")
         # Calculate predictions and probabilities
@@ -118,8 +129,6 @@ def run_training_pipeline():
         
         print(f"Test Accuracy: {test_accuracy_score * 100:.2f}%")
         print(f"Test Metrics - Precision: {test_precision_score:.4f}, Recall: {test_recall_score:.4f}, F1: {test_f1_score:.4f}, ROC-AUC: {test_roc_auc:.4f}")
-        
-        report_dict = classification_report(y_test, y_pred, output_dict=True)
 
         # 4. LOG CONFUSION MATRIX AS ARTIFACT
         print("--- Step 4: Logging Confusion Matrix ---")
@@ -132,25 +141,25 @@ def run_training_pipeline():
         plt.title('Confusion Matrix')
         plt.tight_layout()
         
-        # Create temporary file for confusion matrix plot
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-            plot_path = tmp_file.name
-            plt.savefig(plot_path)
-            plt.close()
-            
-            # Log the plot directly to MLflow
-            mlflow.log_artifact(plot_path, "evaluation_plots")
-            print(f"Confusion matrix saved and logged.")
-            
-            # Clean up temporary file
-            os.unlink(plot_path)
+        # Create properly named file
+        temp_dir = tempfile.gettempdir()
+        confusion_matrix_path = os.path.join(temp_dir, 'confusion_matrix.png')
+        plt.savefig(confusion_matrix_path)
+        plt.close()
+        
+        # Log to evaluation_plots directory
+        mlflow.log_artifact(confusion_matrix_path, "evaluation_plots")
+        print(f"Confusion matrix saved and logged.")
+        
+        # Clean up
+        os.unlink(confusion_matrix_path)
 
         # 4b. LOG ROC CURVE AS ARTIFACT
         print("--- Step 4b: Logging ROC Curve ---")
         # Get prediction probabilities for positive class (already calculated above)
         fpr, tpr, _ = roc_curve(y_test, y_proba)
         
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(6, 5))
         plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {test_roc_auc:.3f})')
         plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--', label='Random')
         plt.xlim([0.0, 1.0])
@@ -160,62 +169,84 @@ def run_training_pipeline():
         plt.title('Receiver Operating Characteristic (ROC) Curve')
         plt.legend(loc="lower right")
         plt.grid(True, alpha=0.3)
+        plt.tight_layout()
         
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-            roc_path = tmp_file.name
-            plt.savefig(roc_path, dpi=300, bbox_inches='tight')
-            plt.close()
-            
-            # Log the ROC curve
-            mlflow.log_artifact(roc_path, "evaluation_plots")
-            print(f"ROC curve saved and logged (AUC = {test_roc_auc:.3f}).")
-            
-            # Clean up temporary file
-            os.unlink(roc_path)
+        # Create properly named file
+        roc_curve_path = os.path.join(temp_dir, 'roc_curve.png')
+        plt.savefig(roc_curve_path)
+        plt.close()
+        
+        # Log to evaluation_plots directory
+        mlflow.log_artifact(roc_curve_path, "evaluation_plots")
+        print(f"ROC curve saved and logged (AUC = {test_roc_auc:.3f}).")
+        
+        # Clean up
+        os.unlink(roc_curve_path)
 
         # 4c. LOG CLASSIFICATION REPORT AS TXT
         print("--- Step 4c: Logging Classification Report ---")
         report_text = classification_report(y_test, y_pred)
         
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as tmp_file:
-            report_path = tmp_file.name
-            tmp_file.write("Classification Report\n")
-            tmp_file.write("====================\n\n")
-            tmp_file.write(report_text)
-            tmp_file.write(f"\n\nROC AUC Score: {test_roc_auc:.4f}\n")
-            tmp_file.write(f"Test Accuracy: {test_accuracy_score:.4f}\n")
-            tmp_file.write(f"Test Precision (Macro): {test_precision_score:.4f}\n")
-            tmp_file.write(f"Test Recall (Macro): {test_recall_score:.4f}\n")
-            tmp_file.write(f"Test F1 Score (Macro): {test_f1_score:.4f}\n")
-            tmp_file.write(f"Test Log Loss: {test_log_loss:.4f}\n")
+        # Create properly named file
+        classification_report_path = os.path.join(temp_dir, 'classification_report.txt')
+        with open(classification_report_path, 'w') as f:
+            f.write("Classification Report\n")
+            f.write("====================\n\n")
+            f.write(report_text)
+            f.write(f"\n\nROC AUC Score: {test_roc_auc:.4f}\n")
+            f.write(f"Test Accuracy: {test_accuracy_score:.4f}\n")
+            f.write(f"Test Precision (Macro): {test_precision_score:.4f}\n")
+            f.write(f"Test Recall (Macro): {test_recall_score:.4f}\n")
+            f.write(f"Test F1 Score (Macro): {test_f1_score:.4f}\n")
+            f.write(f"Test Log Loss: {test_log_loss:.4f}\n")
             
-        # Log the classification report
-        mlflow.log_artifact(report_path, "evaluation_reports")
+        # Log to evaluation_reports directory
+        mlflow.log_artifact(classification_report_path, "evaluation_reports")
         print("Classification report saved and logged.")
         
-        # Clean up temporary file
-        os.unlink(report_path)
+        # Clean up
+        os.unlink(classification_report_path)
 
-        # 4d. LOG DATA SUMMARY
-        print("--- Step 4d: Logging Data Summary ---")
-        # Create data summary
+        # 4d. MANUAL DATASET LOGGING
+        print("--- Step 4d: Manual Dataset Logging ---")
+        
+        # Log dataset information to MLflow UI (not as artifact)
+        dataset = mlflow.data.from_pandas(df, source=raw_path, name="sentiment_dataset", targets="Sentiment")
+        mlflow.log_input(dataset, context="training")
+        print("Dataset information logged to MLflow UI.")
+        
+        # Create comprehensive data summary
         summary = {
             "dataset_info": {
+                "original_dataset_path": "data.csv",
                 "total_samples": len(df),
-                "train_samples": len(X_train),
+                "train_samples": len(X_train), 
                 "test_samples": len(X_test),
-                "test_split_ratio": 0.2
+                "test_split_ratio": 0.2,
+                "features": ["Review"],
+                "target": "Sentiment"
             },
             "class_distribution": {
-                "overall": y.value_counts().to_dict(),
-                "train": y_train.value_counts().to_dict(),
-                "test": y_test.value_counts().to_dict()
+                "overall": {
+                    "negative (0)": int((y == 0).sum()),
+                    "positive (1)": int((y == 1).sum())
+                },
+                "train": {
+                    "negative (0)": int((y_train == 0).sum()),
+                    "positive (1)": int((y_train == 1).sum())
+                },
+                "test": {
+                    "negative (0)": int((y_test == 0).sum()),
+                    "positive (1)": int((y_test == 1).sum())
+                }
             },
             "text_statistics": {
-                "avg_review_length_chars": int(df['Review'].str.len().mean()),
-                "max_review_length_chars": int(df['Review'].str.len().max()),
-                "min_review_length_chars": int(df['Review'].str.len().min()),
-                "avg_review_length_words": int(df['Review'].str.split().str.len().mean())
+                "avg_review_length_chars": int(X.str.len().mean()),
+                "max_review_length_chars": int(X.str.len().max()),
+                "min_review_length_chars": int(X.str.len().min()),
+                "avg_review_length_words": int(X.str.split().str.len().mean()),
+                "train_avg_length_chars": int(X_train.str.len().mean()),
+                "test_avg_length_chars": int(X_test.str.len().mean())
             },
             "model_performance": {
                 "test_accuracy": float(test_accuracy_score),
@@ -227,16 +258,17 @@ def run_training_pipeline():
             }
         }
         
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_file:
-            summary_path = tmp_file.name
-            json.dump(summary, tmp_file, indent=2)
+        # Create properly named file for data summary
+        data_summary_path = os.path.join(temp_dir, 'data_summary.json')
+        with open(data_summary_path, 'w') as f:
+            json.dump(summary, f, indent=2)
             
-        # Log the data summary
-        mlflow.log_artifact(summary_path, "data_summary")
+        # Log to data_summary directory
+        mlflow.log_artifact(data_summary_path, "data_summary")
         print("Data summary saved and logged.")
         
-        # Clean up temporary file
-        os.unlink(summary_path)
+        # Clean up
+        os.unlink(data_summary_path)
 
         # 5. LOG AND REGISTER THE MODEL (manual approach for reliability)
         print("--- Step 5: Logging and Registering Model ---")
@@ -252,13 +284,18 @@ def run_training_pipeline():
         )
         print("Model logged successfully.")
         
-        # Register the model
-        model_uri = f"runs:/{run.info.run_id}/sentiment-model"
-        registered_model = mlflow.register_model(
-            model_uri=model_uri,
-            name="sentiment-classifier"
-        )
-        print(f"Model registered with version: {registered_model.version}")
+        # Register the model only if test accuracy is above 80%
+        if test_accuracy_score > 0.8:
+            model_uri = f"runs:/{run.info.run_id}/sentiment-model"
+            registered_model = mlflow.register_model(
+                model_uri=model_uri,
+                name="sentiment-classifier"
+            )
+            print(f"Model registered with version: {registered_model.version}")
+            print(f"Model passed validation with test accuracy: {test_accuracy_score * 100:.2f}%")
+        else:
+            print(f"Model NOT registered - test accuracy {test_accuracy_score * 100:.2f}% is below 80% threshold")
+            print("Model logged but not registered due to low performance")
 
         print("Pipeline successfully completed.")
         print("Autologging captured: hyperparameters and training metrics automatically.")
