@@ -21,16 +21,15 @@ def preprocess_for_vectorizer(text):
     text = ' '.join(text.split())
     return text
 
-model = skops_io.load('Model/logreg_tfidf.skops')
-vectorizer = skops_io.load('Model/tfidf_vectorizer.skops', trusted=[preprocess_for_vectorizer])
+# Load the single pipeline model
+pipeline = skops_io.load('Model/sentiment_pipeline.skops', trusted=[preprocess_for_vectorizer])
 
 LABELS = ['Negative', 'Positive']
 
 def predict_sentiment(text):
-    # The vectorizer will handle all preprocessing automatically
-    X_tfidf = vectorizer.transform([text])
-    proba = model.predict_proba(X_tfidf)[0]
-    pred = model.predict(X_tfidf)[0]
+    # The pipeline handles all preprocessing and prediction automatically
+    proba = pipeline.predict_proba([text])[0]
+    pred = pipeline.predict([text])[0]
     return {LABELS[0]: float(proba[0]), LABELS[1]: float(proba[1])}
 
 description = "Enter a hotel review to get sentiment prediction (positive/negative)"

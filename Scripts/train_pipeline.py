@@ -11,6 +11,7 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from skops import io as skops_io
 
@@ -58,46 +59,43 @@ def load_and_preprocess_data():
     return X_train, X_test, y_train, y_test
 
 def train_model(X_train, y_train):
-    """Train the TF-IDF + Logistic Regression model"""
+    """Train the TF-IDF + Logistic Regression pipeline"""
     print("Training model...")
     
-    # Create and fit vectorizer with built-in preprocessing
-    vectorizer = TfidfVectorizer(
-        preprocessor=preprocess_for_vectorizer,
-        stop_words='english',  # Use sklearn's built-in English stopwords
-        ngram_range=(1, 3), 
-        max_features=10000,
-        token_pattern=r'\b[A-Za-z][A-Za-z]+\b'  # Only alphabetic tokens with 2+ characters
-    )
-    X_train_tfidf = vectorizer.fit_transform(X_train)
+    # Create pipeline with vectorizer and model
+    pipeline = Pipeline([
+        ('tfidf', TfidfVectorizer(
+            preprocessor=preprocess_for_vectorizer,
+            stop_words='english',  # Use sklearn's built-in English stopwords
+            ngram_range=(1, 3), 
+            max_features=10000,
+            token_pattern=r'\b[A-Za-z][A-Za-z]+\b'  # Only alphabetic tokens with 2+ characters
+        )),
+        ('classifier', LogisticRegression(max_iter=1000, solver='lbfgs', random_state=42))
+    ])
     
-    # Train model
-    model = LogisticRegression(max_iter=1000, solver='lbfgs', random_state=42)
-    model.fit(X_train_tfidf, y_train)
+    # Train the pipeline
+    pipeline.fit(X_train, y_train)
     
-    # Save model and vectorizer
-    skops_io.dump(model, os.path.join(MODEL_DIR, 'logreg_tfidf.skops'))
-    skops_io.dump(vectorizer, os.path.join(MODEL_DIR, 'tfidf_vectorizer.skops'))
+    # Save pipeline as single model
+    skops_io.dump(pipeline, os.path.join(MODEL_DIR, 'sentiment_pipeline.skops'))
     
-    print(f"Model and vectorizer saved to {MODEL_DIR}")
+    print(f"Pipeline saved to {MODEL_DIR}")
     
-    return model, vectorizer
+    return pipeline
 
-def evaluate_model(model, vectorizer, X_test, y_test):
-    """Evaluate the trained model"""
+def evaluate_model(pipeline, X_test, y_test):
+    """Evaluate the trained pipeline"""
     print("Evaluating model...")
     
-    # Transform test data
-    X_test_tfidf = vectorizer.transform(X_test)
-    
-    # Make predictions
-    y_pred = model.predict(X_test_tfidf)
+    # Make predictions using the pipeline (handles preprocessing automatically)
+    y_pred = pipeline.predict(X_test)
     
     # Calculate metrics
     accuracy = accuracy_score(y_test, y_pred)
     report = classification_report(y_test, y_pred, target_names=['Negative', 'Positive'])
     
-    print(f"✅ Test Accuracy: {accuracy * 100:.2f}%")
+    print(f"Test Accuracy: {accuracy * 100:.2f}%")
     print(report)
     
     # Save metrics
@@ -135,17 +133,17 @@ def main():
         X_train, X_test, y_train, y_test = load_and_preprocess_data()
         
         # Step 2: Train model
-        model, vectorizer = train_model(X_train, y_train)
+        pipeline = train_model(X_train, y_train)
         
         # Step 3: Evaluate model
-        accuracy = evaluate_model(model, vectorizer, X_test, y_test)
+        accuracy = evaluate_model(pipeline, X_test, y_test)
         
         print("=" * 60)
-        print(f"🎉 Training pipeline completed successfully!")
+        print(f"Training pipeline completed successfully!")
         print(f"Final accuracy: {accuracy * 100:.2f}%")
         
     except Exception as e:
-        print(f"❌ Error in training pipeline: {str(e)}")
+        print(f"Error in training pipeline: {str(e)}")
         raise
 
 if __name__ == "__main__":

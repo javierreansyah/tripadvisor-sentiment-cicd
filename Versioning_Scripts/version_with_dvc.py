@@ -34,7 +34,7 @@ def main():
     print("Starting DVC data versioning process...")
     
     source_file = 'Data/data.csv'
-    destination_file = 'ci_train_data.csv'
+    destination_file = 'Data/ci_train_data.csv'
 
     if not os.path.exists(source_file):
         print(f"ERROR: Source file not found at '{source_file}'. Aborting process.")
