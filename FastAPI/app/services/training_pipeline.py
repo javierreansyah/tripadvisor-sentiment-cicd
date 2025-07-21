@@ -5,11 +5,11 @@ import httpx
 from app.config import DATA_DIR
 from .state import app_state, WINDOW_SIZE
 from .model_manager import get_latest_trained_model
-from .dvc_manager import dvc_manager
 
 # --- Orchestration Services ---
 async def manage_retraining_data():
-    """Appends new data to the main training set, holding back the last 200 for metrics."""
+    """Appends new data to the main training set, holding back the last 200 for metrics.
+    Note: DVC versioning is now handled manually by admin after training completion."""
     print("Step 1: Managing and versioning data...")
     new_data_path = os.path.join(DATA_DIR, 'new_data.csv')
     main_data_path = os.path.join(DATA_DIR, 'data.csv')
@@ -35,13 +35,10 @@ async def manage_retraining_data():
     data_to_keep.to_csv(new_data_path, index=False)
     print(f"Kept last {len(data_to_keep)} rows in new_data.csv for future monitoring.")
     
-    # Create DVC version after data update
-    print("Creating DVC version of updated data...")
+    # Note: DVC versioning is now handled manually by admin after training
     rows_appended = len(data_to_append) if not data_to_append.empty else 0
-    message = f"Data update: appended {rows_appended} rows"
-    
-    dvc_manager.version_data(message)
-    print("Created data version with DVC")
+    print(f"Data management completed. {rows_appended} rows appended to main training data.")
+    print("Admin should manually version data with DVC after training completion.")
 
 async def trigger_training_run():
     """Calls the training-runner service to start a new MLflow run."""
