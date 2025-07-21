@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import subprocess
 from datetime import datetime
 import pytz
@@ -29,20 +31,31 @@ def run_command(command):
         sys.exit(1)
 
 def main():
-    """
-    Main function to run the DVC versioning process.
-    """
     print("Starting DVC data versioning process...")
+    
     run_command(['dvc', 'add', 'Data/data.csv'])
     run_command(['git', 'add', 'Data/data.csv.dvc'])
+
     wib_tz = pytz.timezone('Asia/Jakarta')
     wib_time = datetime.now(wib_tz)
     commit_message = f"Update data version: {wib_time.strftime('%Y-%m-%d %H:%M:%S %Z')}"
     print(f"Commit message: '{commit_message}'")
+
     run_command(['git', 'commit', '-m', commit_message])
 
-    print("\nDVC versioning process completed successfully!")
-    print("Don't forget to push your changes to the remote repository.")
+    print("\n" + "="*50)
+    response = input("Push changes to remote git repository? (y/N): ").lower().strip()
+    
+    if response == 'y':
+        print("Pushing to remote...")
+        run_command(['git', 'push'])
+        print("\nVersioning process completed and changes pushed successfully!")
+    else:
+        print("\nSkipping push.")
+        print("Local versioning process completed successfully!")
+        print("Remember to run 'git push' manually when you are ready.")
+    print("="*50)
+
 
 if __name__ == "__main__":
     main()
