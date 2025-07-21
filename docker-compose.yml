@@ -121,9 +121,7 @@ services:
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
     volumes:
-      - ./MLFlow:/app/MLFlow
-      - ./Data:/app/Data
-      - ./Results:/app/Results
+      - ./Data:/app/Data # Mount data directory for real-time updates
     depends_on:
       - mlflow
 

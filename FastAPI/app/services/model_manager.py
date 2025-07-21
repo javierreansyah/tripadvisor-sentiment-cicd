@@ -32,7 +32,7 @@ async def load_and_cache_model():
         if run_id:
             try:
                 run_info = client.get_run(run_id)
-                accuracy = run_info.data.metrics.get("accuracy", 0.0)
+                accuracy = run_info.data.metrics.get("test_accuracy_score", 0.0)
             except Exception as run_e:
                 print(f"Warning: Could not fetch run details for run_id '{run_id}'. Error: {run_e}")
         else:
@@ -70,8 +70,8 @@ async def get_latest_trained_model():
         run_id = latest_version.run_id
         
         run = client.get_run(run_id)
-        accuracy = run.data.metrics.get("accuracy", 0.0)
-        
+        accuracy = run.data.metrics.get("test_accuracy_score", 0.0)
+
         print(f"Found latest model version: {latest_version.version}")
         app_state["retraining"]["candidate"] = {
             "version": int(latest_version.version),
