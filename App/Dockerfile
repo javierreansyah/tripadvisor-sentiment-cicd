@@ -6,7 +6,7 @@ COPY App/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY App/ ./App
-COPY Model/ ./Model
+COPY Actions/Model/ ./Actions/Model
 
 EXPOSE 7860
 

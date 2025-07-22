@@ -6,8 +6,6 @@ services:
     container_name: gradio_ui
     ports:
       - "7860:7860"
-    volumes:
-      - ./Model:/app/Model
     env_file:
       - .env
     restart: unless-stopped
@@ -16,7 +14,7 @@ services:
   fastapi-app:
     build:
       context: ./FastAPI
-    container_name: fastapi_app
+    container_name: fastapi_metrics_api
     ports:
       - "8000:8000"
     # Add env_file to load the .env file
@@ -31,7 +29,7 @@ services:
       - ./Data:/app/Data
     restart: unless-stopped
     depends_on:
-      - mlflow-server
+      - mlflow
 
   prometheus:
     image: prom/prometheus:main
@@ -86,7 +84,7 @@ services:
     volumes:
       - minio-data:/data
 
-  mlflow-server:
+  mlflow:
     build:
       context: .
       dockerfile: MLFlow/Server/Dockerfile
@@ -107,11 +105,11 @@ services:
       - db
       - minio
 
-  mlflow-training-runner:
+  training-runner:
     build:
       context: .
       dockerfile: MLFlow/Dockerfile
-    container_name: mlflow_training_runner
+    container_name: training_runner
     # The command is now to run the FastAPI server with Uvicorn
     command: ["uvicorn", "MLFlow.app:app", "--host=0.0.0.0", "--port=5002"]
     ports:
@@ -121,9 +119,11 @@ services:
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
     volumes:
-      - ./Data:/app/Data # Mount data directory for real-time updates
+      - ./MLFlow:/app/MLFlow
+      - ./Data:/app/Data
+      - ./Results:/app/Results
     depends_on:
-      - mlflow-server
+      - mlflow
 
   # The separate model-server service has been REMOVED
 
