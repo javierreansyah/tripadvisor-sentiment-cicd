@@ -43,11 +43,8 @@ def load_and_preprocess_data():
     """Load the raw data"""
     print("Loading data...")
     
-    # Load raw data
     raw_path = os.path.join(DATA_DIR, 'ci_train_data.csv')
     df = pd.read_csv(raw_path)
-    
-    # Split data without preprocessing (vectorizer will handle it)
     X_train, X_test, y_train, y_test = train_test_split(
         df['Review'], df['Sentiment'], test_size=0.2, random_state=42
     )
@@ -66,10 +63,10 @@ def train_model(X_train, y_train):
     pipeline = Pipeline([
         ('tfidf', TfidfVectorizer(
             preprocessor=preprocess_for_vectorizer,
-            stop_words='english',  # Use sklearn's built-in English stopwords
+            stop_words='english',
             ngram_range=(1, 3), 
             max_features=10000,
-            token_pattern=r'\b[A-Za-z][A-Za-z]+\b'  # Only alphabetic tokens with 2+ characters
+            token_pattern=r'\b[A-Za-z][A-Za-z]+\b'
         )),
         ('classifier', LogisticRegression(max_iter=1000, solver='lbfgs', random_state=42))
     ])
@@ -88,7 +85,7 @@ def evaluate_model(pipeline, X_test, y_test):
     """Evaluate the trained pipeline"""
     print("Evaluating model...")
     
-    # Make predictions using the pipeline (handles preprocessing automatically)
+    # Make predictions using the pipeline
     y_pred = pipeline.predict(X_test)
     
     # Calculate metrics

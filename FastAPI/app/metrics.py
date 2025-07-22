@@ -1,13 +1,16 @@
-from prometheus_client import Gauge
+# 225150200111004_1 HAIKAL THORIQ ATHAYA_1
+# 225150200111008_2 MUHAMMAD ARSYA ZAIN YASHIFA_2
+# 225150201111001_3 JAVIER AAHMES REANSYAH_3
+# 225150201111003_4 MUHAMMAD HERDI ADAM_4
 
-# --- PROMETHEUS GAUGES ---
+from prometheus_client import Gauge
 
 accuracy_gauge = Gauge(
     'model_accuracy',
     'Current accuracy of the prediction model'
 )
 
-# Data drift metrics using embeddings
+# Data drift metrics
 drift_score_gauge = Gauge(
     'drift_score',
     'Combined data drift score based on embedding analysis'

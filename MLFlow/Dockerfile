@@ -1,15 +1,15 @@
+# 225150200111004_1 HAIKAL THORIQ ATHAYA_1
+# 225150200111008_2 MUHAMMAD ARSYA ZAIN YASHIFA_2
+# 225150201111001_3 JAVIER AAHMES REANSYAH_3
+# 225150201111003_4 MUHAMMAD HERDI ADAM_4
+
 FROM python:3.10-slim
 
 WORKDIR /app
 
-# Copy requirements and install dependencies
 COPY MLFlow/requirements.txt .
 RUN pip install -r requirements.txt
 
-# Copy MLFlow application files
 COPY MLFlow/ ./MLFlow/
 
-# Note: Data directory will be mounted as volume for real-time updates
-
-# Set the default command to run the FastAPI app
 CMD ["uvicorn", "MLFlow.app:app", "--host=0.0.0.0", "--port=5002"]

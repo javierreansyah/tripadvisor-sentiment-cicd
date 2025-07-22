@@ -6,7 +6,7 @@ from mlflow.exceptions import RestException
 
 from .state import app_state, MODEL_NAME, MODEL_ALIAS
 
-# --- Model Loading & State Update Service ---
+# Model Loading & State Update Service ---
 async def load_and_cache_model():
     """Loads the latest production model and updates the central app_state."""
     print(f"State Update: Checking for production model '{MODEL_NAME}@{MODEL_ALIAS}'...")

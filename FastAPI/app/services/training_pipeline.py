@@ -33,7 +33,6 @@ async def manage_retraining_data():
         # The rest goes to training data
         data_to_append = df_new.drop(data_to_keep.index)
     else:
-        # If we have less than WINDOW_SIZE rows, keep all as monitoring data
         data_to_keep = df_new.copy()
         data_to_append = pd.DataFrame()
     
@@ -46,7 +45,7 @@ async def manage_retraining_data():
     data_to_keep.to_csv(new_data_path, index=False)
     print(f"Kept last {len(data_to_keep)} rows in new_data.csv for future monitoring.")
     
-    # Note: DVC versioning is now handled manually by admin after training
+    # DVC versioning is now handled manually by admin after training
     rows_appended = len(data_to_append) if not data_to_append.empty else 0
     print(f"Data management completed. {rows_appended} rows appended to main training data.")
     print("Admin should manually version data with DVC after training completion.")
