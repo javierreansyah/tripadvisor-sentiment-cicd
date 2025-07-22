@@ -121,7 +121,6 @@ services:
     volumes:
       - ./MLFlow:/app/MLFlow
       - ./Data:/app/Data
-      - ./Results:/app/Results
     depends_on:
       - mlflow
 
