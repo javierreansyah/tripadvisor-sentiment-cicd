@@ -22,7 +22,7 @@ def preprocess_for_vectorizer(text):
     return text
 
 # Load the single pipeline model
-pipeline = skops_io.load('Model/sentiment_pipeline.skops', trusted=[preprocess_for_vectorizer])
+pipeline = skops_io.load('Actions/Model/sentiment_pipeline.skops', trusted=[preprocess_for_vectorizer])
 
 LABELS = ['Negative', 'Positive']
 

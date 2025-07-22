@@ -16,10 +16,10 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 from skops import io as skops_io
 
 # Setup directories
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DATA_DIR = os.path.join(ROOT_DIR, 'Data')
-MODEL_DIR = os.path.join(ROOT_DIR, 'Model')
-RESULTS_DIR = os.path.join(ROOT_DIR, 'Results')
+MODEL_DIR = os.path.join(ROOT_DIR, 'Actions', 'Model')
+RESULTS_DIR = os.path.join(ROOT_DIR, 'Actions', 'Results')
 
 # Create directories if they don't exist
 os.makedirs(MODEL_DIR, exist_ok=True)
