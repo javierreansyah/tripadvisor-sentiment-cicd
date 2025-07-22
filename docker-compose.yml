@@ -1,3 +1,8 @@
+# 225150200111004_1 HAIKAL THORIQ ATHAYA_1
+# 225150200111008_2 MUHAMMAD ARSYA ZAIN YASHIFA_2
+# 225150201111001_3 JAVIER AAHMES REANSYAH_3
+# 225150201111003_4 MUHAMMAD HERDI ADAM_4
+
 services:
   gradio-app:
     build:
@@ -10,14 +15,12 @@ services:
       - .env
     restart: unless-stopped
 
-  # --- UNIFIED FastAPI Monitoring and Serving App ---
   fastapi-app:
     build:
       context: ./FastAPI
     container_name: fastapi_metrics_api
     ports:
       - "8000:8000"
-    # Add env_file to load the .env file
     env_file:
       - .env
     environment:
@@ -110,10 +113,9 @@ services:
       context: .
       dockerfile: MLFlow/Dockerfile
     container_name: training_runner
-    # The command is now to run the FastAPI server with Uvicorn
     command: ["uvicorn", "MLFlow.app:app", "--host=0.0.0.0", "--port=5002"]
     ports:
-      - "5002:5002" # Expose the port so the orchestrator can call it
+      - "5002:5002"
     environment:
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
       - AWS_ACCESS_KEY_ID=minioadmin
@@ -123,8 +125,6 @@ services:
       - ./Data:/app/Data
     depends_on:
       - mlflow
-
-  # The separate model-server service has been REMOVED
 
 volumes:
   grafana-storage: {}

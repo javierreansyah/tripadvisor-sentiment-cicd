@@ -14,10 +14,7 @@ def get_random_examples_from_gemini_csv(num_examples: int = 5):
     examples = []
     
     if os.path.exists(gemini_example_path):
-        # Read CSV with pandas
         df = pd.read_csv(gemini_example_path)
-        
-        # Filter out empty reviews and get the Review column
         reviews = df['Review'].dropna().tolist()
         
         # Get random samples
@@ -41,7 +38,6 @@ def generate_and_save_gemini_data(style: str = None, quantity: int = 20):
     
     style_instruction = f"The style of the reviews must be: {style}." if style else "Use a natural, authentic hotel review style similar to real TripAdvisor reviews."
     
-    # Create examples string from random samples
     examples_text = "\n".join([f'- "{review}"' for review in sample_reviews])
     
     prompt = f"""

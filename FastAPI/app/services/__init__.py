@@ -1,5 +1,3 @@
-# Import all functions from the separated service modules for backward compatibility
-
 # State management
 from .state import (
     app_state,
@@ -41,7 +39,6 @@ from .prediction_service import (
     predict_sentiment
 )
 
-# Re-export all functions to maintain backward compatibility
 __all__ = [
     # State
     'app_state',

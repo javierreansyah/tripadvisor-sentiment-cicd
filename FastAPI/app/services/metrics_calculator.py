@@ -17,14 +17,12 @@ from app.metrics import (
 )
 from .state import app_state, WINDOW_SIZE
 
-# Global embedding model instance for efficient reuse
 _embedding_model = None
 
 def get_embedding_model():
     """Get or create the embedding model instance."""
     global _embedding_model
     if _embedding_model is None:
-        # Using a lightweight, fast model that's good for semantic similarity
         print("Loading embedding model: all-MiniLM-L6-v2")
         _embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         print("Embedding model loaded successfully")
@@ -58,8 +56,8 @@ def calculate_embedding_drift_metrics(ref_embeddings, new_embeddings):
     
     # Combine metrics into a single drift score (weighted average)
     # Normalize centroid_distance and spread_distance to [0,1] range approximately
-    normalized_centroid = min(centroid_distance / 10.0, 1.0)  # Empirical scaling
-    normalized_spread = min(spread_distance / 5.0, 1.0)      # Empirical scaling
+    normalized_centroid = min(centroid_distance / 10.0, 1.0)
+    normalized_spread = min(spread_distance / 5.0, 1.0)
     
     # Combined drift score: emphasize semantic similarity (KS) and structure changes
     combined_drift_score = 0.5 * semantic_ks_stat + 0.3 * normalized_centroid + 0.2 * normalized_spread
@@ -74,7 +72,6 @@ def calculate_embedding_drift_metrics(ref_embeddings, new_embeddings):
 async def calculate_drift_metrics():
     def _calculate_sync():
         try:
-            # Load data
             ref_data_path = os.path.join(DATA_DIR, 'data.csv')
             new_data_path = os.path.join(DATA_DIR, 'new_data.csv')
             if not os.path.exists(ref_data_path) or not os.path.exists(new_data_path): 
@@ -159,8 +156,6 @@ async def calculate_model_accuracy():
         predictions = []
         
         for review in sample_data:
-            # Pass raw text directly to the sklearn pipeline
-            # The pipeline will handle preprocessing internally
             pred = model.predict([review])[0]
             predictions.append(pred)
         

@@ -1,10 +1,14 @@
+# 225150200111004_1 HAIKAL THORIQ ATHAYA_1
+# 225150200111008_2 MUHAMMAD ARSYA ZAIN YASHIFA_2
+# 225150201111001_3 JAVIER AAHMES REANSYAH_3
+# 225150201111003_4 MUHAMMAD HERDI ADAM_4
+
 from fastapi import FastAPI, HTTPException
 import subprocess
 import os
 
 app = FastAPI(title="Training Runner Service")
 
-# The path to your original training script
 TRAINING_SCRIPT_PATH = os.path.join(os.path.dirname(__file__), 'training_pipeline.py')
 
 @app.get("/")
@@ -27,12 +31,11 @@ async def retrain_model():
     """
     try:
         print("Received request to start training pipeline via GET...")
-        # We run the script using the same Python executable that runs the app.
         process = subprocess.run(
             ['python', TRAINING_SCRIPT_PATH],
             capture_output=True,
             text=True,
-            check=True  # This will raise an exception if the script fails
+            check=True
         )
         
         print("Training script executed successfully.")
@@ -66,12 +69,11 @@ async def start_training():
     """
     try:
         print("Received request to start training pipeline...")
-        # We run the script using the same Python executable that runs the app.
         process = subprocess.run(
             ['python', TRAINING_SCRIPT_PATH],
             capture_output=True,
             text=True,
-            check=True  # This will raise an exception if the script fails
+            check=True
         )
         
         print("Training script executed successfully.")

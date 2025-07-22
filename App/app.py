@@ -9,7 +9,6 @@ import re
 
 def preprocess_for_vectorizer(text):
     """Simple preprocessing function for the Vectorizer"""
-    # Standardize text
     text = re.sub(r"http\S+", "", text)
     text = re.sub(r"http", "", text)
     text = re.sub(r"@\S+", "", text)
@@ -17,17 +16,14 @@ def preprocess_for_vectorizer(text):
     text = text.replace("@", " at ")
     text = text.lower()
     
-    # Remove extra whitespace
     text = ' '.join(text.split())
     return text
 
-# Load the single pipeline model
 pipeline = skops_io.load('Actions/Model/sentiment_pipeline.skops', trusted=[preprocess_for_vectorizer])
 
 LABELS = ['Negative', 'Positive']
 
 def predict_sentiment(text):
-    # The pipeline handles all preprocessing and prediction automatically
     proba = pipeline.predict_proba([text])[0]
     pred = pipeline.predict([text])[0]
     return {LABELS[0]: float(proba[0]), LABELS[1]: float(proba[1])}

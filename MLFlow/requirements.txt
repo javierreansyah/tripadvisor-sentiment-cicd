@@ -1,3 +1,8 @@
+# 225150200111004_1 HAIKAL THORIQ ATHAYA_1
+# 225150200111008_2 MUHAMMAD ARSYA ZAIN YASHIFA_2
+# 225150201111001_3 JAVIER AAHMES REANSYAH_3
+# 225150201111003_4 MUHAMMAD HERDI ADAM_4
+
 # Core ML libraries
 pandas==1.5.0
 scikit-learn==1.5.2
@@ -10,6 +15,6 @@ mlflow>=2.4.0
 psycopg2-binary
 boto3
 
-# Web server for the API (now FastAPI)
+# Web server for the API
 fastapi
 uvicorn[standard]

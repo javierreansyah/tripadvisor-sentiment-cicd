@@ -1,12 +1,17 @@
+# 225150200111004_1 HAIKAL THORIQ ATHAYA_1
+# 225150200111008_2 MUHAMMAD ARSYA ZAIN YASHIFA_2
+# 225150201111001_3 JAVIER AAHMES REANSYAH_3
+# 225150201111003_4 MUHAMMAD HERDI ADAM_4
+
 # Core libraries for evaluation and serving
 pandas==1.5.0
 scikit-learn==1.5.2
 numpy==1.26.4
 scipy
-mlflow-skinny  # Lightweight client for model loading
-boto3          # AWS SDK for Python, needed by MLflow for S3 access
-nltk==3.8.1    # Needed for the model's preprocessing step
-google-generativeai # Added: For generating synthetic data
+mlflow-skinny
+boto3
+nltk==3.8.1
+google-generativeai
 
 # Libraries for FastAPI & Prometheus
 fastapi

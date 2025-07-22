@@ -1,7 +1,10 @@
+# 225150200111004_1 HAIKAL THORIQ ATHAYA_1
+# 225150200111008_2 MUHAMMAD ARSYA ZAIN YASHIFA_2
+# 225150201111001_3 JAVIER AAHMES REANSYAH_3
+# 225150201111003_4 MUHAMMAD HERDI ADAM_4
+
 import os
 import google.generativeai as genai
-
-# --- APPLICATION CONFIGURATION ---
 
 # Model Server URL (kept for potential future use or other integrations)
 MODEL_SERVER_URL = os.environ.get("MODEL_SERVER_URL", "http://localhost:1234")

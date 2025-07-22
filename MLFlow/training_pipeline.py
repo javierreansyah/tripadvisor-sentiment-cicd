@@ -1,3 +1,8 @@
+# 225150200111004_1 HAIKAL THORIQ ATHAYA_1
+# 225150200111008_2 MUHAMMAD ARSYA ZAIN YASHIFA_2
+# 225150201111001_3 JAVIER AAHMES REANSYAH_3
+# 225150201111003_4 MUHAMMAD HERDI ADAM_4
+
 import os
 import pandas as pd
 import re
@@ -37,7 +42,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DATA_DIR = os.path.join(ROOT_DIR, 'Data')
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# --- Preprocessing Function ---
+# Preprocessing
 def preprocess_for_vectorizer(text):
     text = re.sub(r"http\S+", "", text)
     text = re.sub(r"http", "", text)
@@ -49,9 +54,8 @@ def preprocess_for_vectorizer(text):
     return text
 
 
-# --- Training and Evaluation Logic ---
+# Training and Evaluation Logic
 def run_training_pipeline():
-    # Generate run name with timestamp and version
     from datetime import datetime
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
@@ -130,7 +134,7 @@ def run_training_pipeline():
         print(f"Test Accuracy: {test_accuracy_score * 100:.2f}%")
         print(f"Test Metrics - Precision: {test_precision_score:.4f}, Recall: {test_recall_score:.4f}, F1: {test_f1_score:.4f}, ROC-AUC: {test_roc_auc:.4f}")
 
-        # 4. LOG CONFUSION MATRIX AS ARTIFACT
+        # LOG CONFUSION MATRIX AS ARTIFACT
         print("--- Step 4: Logging Confusion Matrix ---")
         cm = confusion_matrix(y_test, y_pred)
         plt.figure(figsize=(6, 5))
@@ -154,7 +158,7 @@ def run_training_pipeline():
         # Clean up
         os.unlink(confusion_matrix_path)
 
-        # 4b. LOG ROC CURVE AS ARTIFACT
+        # LOG ROC CURVE AS ARTIFACT
         print("--- Step 4b: Logging ROC Curve ---")
         # Get prediction probabilities for positive class (already calculated above)
         fpr, tpr, _ = roc_curve(y_test, y_proba)
@@ -183,7 +187,7 @@ def run_training_pipeline():
         # Clean up
         os.unlink(roc_curve_path)
 
-        # 4c. LOG CLASSIFICATION REPORT AS TXT
+        # LOG CLASSIFICATION REPORT AS TXT
         print("--- Step 4c: Logging Classification Report ---")
         report_text = classification_report(y_test, y_pred)
         
@@ -207,7 +211,7 @@ def run_training_pipeline():
         # Clean up
         os.unlink(classification_report_path)
 
-        # 4d. MANUAL DATASET LOGGING
+        # MANUAL DATASET LOGGING
         print("--- Step 4d: Manual Dataset Logging ---")
         
         # Log dataset information to MLflow UI (not as artifact)
@@ -258,7 +262,7 @@ def run_training_pipeline():
             }
         }
         
-        # Create properly named file for data summary
+        # Create named file for data summary
         data_summary_path = os.path.join(temp_dir, 'data_summary.json')
         with open(data_summary_path, 'w') as f:
             json.dump(summary, f, indent=2)
@@ -270,7 +274,7 @@ def run_training_pipeline():
         # Clean up
         os.unlink(data_summary_path)
 
-        # 5. LOG AND REGISTER THE MODEL (manual approach for reliability)
+        # LOG AND REGISTER THE MODEL (manual approach for reliability)
         print("--- Step 5: Logging and Registering Model ---")
         
         # Log the model manually (more reliable than autologging)
