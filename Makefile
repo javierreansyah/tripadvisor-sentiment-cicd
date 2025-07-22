@@ -1,22 +1,22 @@
 install:
 	pip install --upgrade pip &&\
-		if [ -f Scripts/requirements.txt ]; then pip install -r Scripts/requirements.txt; fi
+		if [ -f Actions/Scripts/requirements.txt ]; then pip install -r Actions/Scripts/requirements.txt; fi
 
 format:
-	black Scripts/*.py
+	black Actions/Scripts/*.py
 
 train:
-	mkdir -p Model Results
-	python Scripts/train_pipeline.py
+	mkdir -p Actions/Model Actions/Results
+	python Actions/Scripts/train_pipeline.py
 
 eval:
-	echo "## Model Metrics" > Results/report.md
-	if [ -f ./Results/metrics.txt ]; then cat ./Results/metrics.txt >> Results/report.md; fi
-	if [ -f ./Results/confusion_matrix.png ]; then \
-		echo '\n## Evaluation Plot' >> Results/report.md; \
-		echo '![Confusion Matrix](confusion_matrix.png)' >> Results/report.md; \
+	echo "## Model Metrics" > Actions/Results/report.md
+	if [ -f ./Actions/Results/metrics.txt ]; then cat ./Actions/Results/metrics.txt >> Actions/Results/report.md; fi
+	if [ -f ./Actions/Results/confusion_matrix.png ]; then \
+		echo '\n## Evaluation Plot' >> Actions/Results/report.md; \
+		echo '![Confusion Matrix](confusion_matrix.png)' >> Actions/Results/report.md; \
 	fi
-	cml comment create Results/report.md
+	cml comment create Actions/Results/report.md
 
 update-branch:
 	git config --global user.name $(USER_NAME)
@@ -33,7 +33,7 @@ hf-login:
 
 push-hub:
 	huggingface-cli upload javierreansyah/Hotel-Review ./App . --repo-type=space --commit-message="Sync App files"
-	huggingface-cli upload javierreansyah/Hotel-Review ./Model/sentiment_pipeline.skops Model/sentiment_pipeline.skops --repo-type=space --commit-message="Sync Pipeline Model File"
-	huggingface-cli upload javierreansyah/Hotel-Review ./Results/metrics.txt Results/metrics.txt --repo-type=space --commit-message="Sync Metrics File"
+	huggingface-cli upload javierreansyah/Hotel-Review ./Actions/Model/sentiment_pipeline.skops Actions/Model/sentiment_pipeline.skops --repo-type=space --commit-message="Sync Pipeline Model File"
+	huggingface-cli upload javierreansyah/Hotel-Review ./Actions/Results/metrics.txt Actions/Results/metrics.txt --repo-type=space --commit-message="Sync Metrics File"
 
 deploy: hf-login push-hub

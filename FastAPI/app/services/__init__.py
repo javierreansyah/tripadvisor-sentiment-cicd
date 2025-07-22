@@ -36,6 +36,11 @@ from .metrics_calculator import (
     calculate_and_set_all_metrics
 )
 
+# Prediction service
+from .prediction_service import (
+    predict_sentiment
+)
+
 # Re-export all functions to maintain backward compatibility
 __all__ = [
     # State
@@ -63,4 +68,7 @@ __all__ = [
     'calculate_drift_metrics',
     'calculate_model_accuracy',
     'calculate_and_set_all_metrics',
+    
+    # Prediction
+    'predict_sentiment',
 ]

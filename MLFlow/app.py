@@ -89,6 +89,3 @@ async def start_training():
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-# Note: The uvicorn command in docker-compose will run this app.
-# No need for an if __name__ == '__main__': block for production.
