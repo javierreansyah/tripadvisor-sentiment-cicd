@@ -1,0 +1,13 @@
+## Model Metrics
+Accuracy: 89.50%
+              precision    recall  f1-score   support
+
+    Negative       0.90      0.69      0.78      1097
+    Positive       0.89      0.97      0.93      2962
+
+    accuracy                           0.90      4059
+   macro avg       0.90      0.83      0.86      4059
+weighted avg       0.90      0.90      0.89      4059
+
+## Evaluation Plot
+![Confusion Matrix](confusion_matrix.png)
